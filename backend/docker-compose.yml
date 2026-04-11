@@ -1,17 +1,18 @@
-version: "3.9"
+version: '3.8'
 
 services:
   db:
-    image: mysql:8
-    container_name: project-mysql
-    restart: always
+    image: postgres:17
+    container_name: totsuko-db
     environment:
-      MYSQL_ROOT_PASSWORD: password
-      MYSQL_DATABASE: app_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 1234
+      POSTGRES_DB: totsuko
     ports:
-      - "3306:3306"
+      - "5432:5432"
     volumes:
-      - db_data:/var/lib/mysql
+      - pgdata:/var/lib/postgresql/data
+      - ./sql_init.sql:/docker-entrypoint-initdb.d/sql_init.sql 
 
 volumes:
-  db_data:
+  pgdata:

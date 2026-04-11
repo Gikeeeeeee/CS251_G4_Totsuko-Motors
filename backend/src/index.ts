@@ -1,15 +1,23 @@
-import Fastify from "fastify";
+import express, { Request, Response } from 'express';
+import cors from 'cors';
+import 'dotenv/config';
 
-const app = Fastify();
+const app = express();
 
-app.get("/health", async () => {
-  return { status: "ok" };
+// Middlewares
+app.use(cors());
+app.use(express.json());
+
+// Health Check Route (เอาไว้ให้ FE ยิงมาเทสว่า BE ติดหรือยัง)
+app.get('/api/health', (req: Request, res: Response) => {
+  res.json({ 
+    status: 'ok', 
+    message: 'Totsuko Motors API is running!' 
+  });
 });
 
-app.listen({ port: 3001 }, (err, address) => {
-  if (err) {
-    console.error(err);
-    process.exit(1);
-  }
-  console.log(`Server running at ${address}`);
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log(`Server is running on http://localhost:${PORT}`);
 });
