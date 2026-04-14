@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import 'dotenv/config';
+import serviceJobRoutes from './service-job/service-job.route'; 
 
 const app = express();
 
@@ -8,13 +9,16 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Health Check Route (เอาไว้ให้ FE ยิงมาเทสว่า BE ติดหรือยัง)
+// Health Check Route
 app.get('/api/health', (req: Request, res: Response) => {
   res.json({ 
     status: 'ok', 
     message: 'Totsuko Motors API is running!' 
   });
 });
+
+
+app.use('/api/service-job', serviceJobRoutes);
 
 const PORT = process.env.PORT || 3000;
 
