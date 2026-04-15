@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import 'dotenv/config';
+import usePartRoutes from './add-part-usage/add-part-usage.route'
 
 const app = express();
 
@@ -15,7 +16,7 @@ app.get('/api/health', (req: Request, res: Response) => {
     message: 'Totsuko Motors API is running!' 
   });
 });
-
+app.use('/api/use-part', usePartRoutes)
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
