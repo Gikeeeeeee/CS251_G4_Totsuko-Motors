@@ -19,6 +19,8 @@ export default function AddServicePage() {
   })
 
   const [errors, setErrors] = useState<{[key: string]: string}>({})
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
+  const [serviceId, setServiceId] = useState('')
 
   const validateForm = () => {
     const newErrors: {[key: string]: string} = {}
@@ -67,9 +69,12 @@ export default function AddServicePage() {
     e.preventDefault()
     
     if (validateForm()) {
+      // Generate service ID
+      const newServiceId = 'SV' + Math.random().toString(36).substr(2, 9).toUpperCase()
+      setServiceId(newServiceId)
+      
       console.log('Form submitted:', formData)
-      alert('บันทึกข้อมูลสำเร็จ!')
-      handleClear()
+      setShowSuccessModal(true)
     }
   }
 
@@ -86,6 +91,15 @@ export default function AddServicePage() {
       technician: ''
     })
     setErrors({})
+  }
+
+  const handleCloseModal = () => {
+    setShowSuccessModal(false)
+    handleClear()
+  }
+
+  const handleGoToDashboard = () => {
+    window.location.href = '/'
   }
 
   return (
@@ -236,6 +250,54 @@ export default function AddServicePage() {
           </div>
         </div>
       </div>
+
+      {showSuccessModal && (
+        <div className={styles.modalOverlay} onClick={handleCloseModal}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <button className={styles.closeBtn} onClick={handleCloseModal}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M18 6L6 18M6 6L18 18" stroke="#64748B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+
+            <div className={styles.successIcon}>
+              <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="32" cy="32" r="32" fill="#D1FAE5"/>
+                <path d="M20 32L28 40L44 24" stroke="#10B981" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+
+            <h2 className={styles.modalTitle}>Service Created Successfully</h2>
+            <p className={styles.modalDescription}>
+              The vehicle has been added to the active queue and assigned to a technician.
+            </p>
+
+            <div className={styles.serviceDetails}>
+              <div className={styles.detailRow}>
+                <span className={styles.detailLabel}>SERVICE ID</span>
+                <span className={styles.detailValue}>{serviceId}</span>
+              </div>
+              <div className={styles.detailRow}>
+                <span className={styles.detailLabel}>VEHICLE</span>
+                <span className={styles.detailValue}>
+                  {formData.brandModel || 'N/A'} ({formData.vehiclePlate})
+                </span>
+              </div>
+              <div className={styles.detailRow}>
+                <span className={styles.detailLabel}>STATUS</span>
+                <span className={styles.statusBadge}>
+                  <span className={styles.statusDot}></span>
+                  INTAKE
+                </span>
+              </div>
+            </div>
+
+            <button className={styles.dashboardBtn} onClick={handleGoToDashboard}>
+              Go to Dashboard
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
