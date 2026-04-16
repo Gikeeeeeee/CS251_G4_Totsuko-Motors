@@ -8,7 +8,7 @@ export default function TopNavClerk() {
         <div className={styles.divider}></div>
         <div className={styles.userInfo}>
           <div className={styles.userText}>
-            <div className={styles.userName}>Admin</div>
+            <div className={styles.userName}>JOHNDO</div>
             <div className={styles.userRole}>Clerk</div>
           </div>
           <div className={styles.avatar}></div>

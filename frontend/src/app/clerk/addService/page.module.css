@@ -99,6 +99,23 @@
   color: #002446;
 }
 
+.required {
+  color: #EF4444 !important;
+  margin-left: 2px;
+}
+
+.inputError {
+  border: 2px solid #EF4444 !important;
+  background: #FEF2F2 !important;
+}
+
+.errorText {
+  color: #EF4444;
+  font-size: 12px;
+  margin-top: 4px;
+  display: block;
+}
+
 .input {
   padding: 14px 16px;
   background: #F3FAFF;
