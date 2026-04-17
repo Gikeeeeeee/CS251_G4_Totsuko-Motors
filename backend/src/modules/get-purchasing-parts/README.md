@@ -1,9 +1,9 @@
 TLDR: GET http://localhost:3000/parts บอก part ทุกชิ้นพร้อม status
 
 มี 3 filter บอก part อิงตาม Status
-GET http://localhost:3000/parts?status=Inventory
-GET http://localhost:3000/parts?status=Nearly%20Out%20of%20Stock
-GET http://localhost:3000/parts?status=Waiting%20for%20delivery
+GET http://localhost:3000/parts?status=Inventory [stock_quantity - reserved_qty < reorder_point]
+GET http://localhost:3000/parts?status=Nearly%20Out%20of%20Stock [stock_quantity - reserved_qty > reorder_point]
+GET http://localhost:3000/parts?status=Waiting%20for%20delivery [stock_quantity - reserved_qty > reorder_point && มี actve purchase order สำหรับ part นั้น]
 
 Example
 GET http://localhost:3000/parts
