@@ -9,7 +9,8 @@
     "start": "node dist/index.js",
     "db:generate": "drizzle-kit generate:pg",
     "db:migrate": "drizzle-kit migrate:pg",
-    "db:push": "drizzle-kit push:pg"
+    "db:push": "drizzle-kit push:pg",
+    "seed:intake": "tsx src/modules/get-serviceReq/intake.seed.ts"
   },
   "dependencies": {
     "cors": "^2.8.5",
