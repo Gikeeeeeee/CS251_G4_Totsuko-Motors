@@ -48,6 +48,7 @@ const MOCK: MockData = {
 export default function OperatingPage() {
   const [data, setData] = useState<MockData | null>(null);
   const [jobs, setJobs] = useState<ServiceJob[]>([]);
+  const [otherItems, setOtherItems] = useState<OtherService[]>([]);
 
   return (
     <div>
@@ -55,7 +56,7 @@ export default function OperatingPage() {
         <h1 className="text-2xl font-bold" style={{ color: '#1E3A8A' }}>Operating</h1>
         <button
           onClick={() => setData((v) => (v ? null : MOCK))}
-          className="px-4 py-1.5 rounded-md text-xs font-semibold transition-colors"
+          className="px-4 py-1.5 rounded-md text-xs font-semibold transition-colors cursor-pointer"
           style={{
             backgroundColor: data ? '#1E3A8A' : '#E2E8F0',
             color: data ? 'white' : '#64748B',
@@ -79,7 +80,7 @@ export default function OperatingPage() {
             {/* แผ่น 1: ป้ายทะเบียน */}
             <div className="bg-white rounded-xl border border-slate-200 flex flex-col items-center justify-center px-6 py-2 min-w-90">
               <div className="text-4xl font-bold text-slate-800">{data.plate}</div>
-              <div className="text-xl text-slate-400 mt-1">{data.province}</div>
+              <div className="text-xl text-slate-800 mt-1">{data.province}</div>
             </div>
 
             {/* แผ่น 2: รูปรถ */}
@@ -107,7 +108,7 @@ export default function OperatingPage() {
             <ServiceJobSection jobs={jobs} setJobs={setJobs} />
 
             {/* Other Service */}
-            <OtherServiceSection />
+            <OtherServiceSection items={otherItems} setItems={setOtherItems} />
 
           </div>
 
@@ -115,7 +116,7 @@ export default function OperatingPage() {
           <AppointmentCard data={data} />
 
           {/* Invoice Card */}
-          <InvoiceCard data={data} jobs={jobs} />
+          <InvoiceCard data={data} jobs={jobs} otherItems={otherItems} />
 
         </div>
       )}
@@ -123,8 +124,8 @@ export default function OperatingPage() {
   );
 }
 
-function InvoiceCard({ jobs }: { data: MockData; jobs: ServiceJob[] }) {
-  // Aggregate parts across all jobs
+function InvoiceCard({ jobs, otherItems }: { data: MockData; jobs: ServiceJob[]; otherItems: OtherService[] }) {
+  // Aggregate parts across all service jobs
   const partsMap = new Map<string, { qty: number; price: number; stockQty: number }>();
   for (const job of jobs) {
     for (const p of job.parts) {
@@ -138,12 +139,27 @@ function InvoiceCard({ jobs }: { data: MockData; jobs: ServiceJob[] }) {
   }
   const partRows = Array.from(partsMap.entries()).map(([name, v]) => ({ name, ...v }));
 
-  // Labor: total technician assignments × 400
-  const techCount = jobs.reduce((sum, job) => sum + job.technicians.length, 0);
+  // Aggregate other services (deduplicate same service name, sum prices)
+  const serviceMap = new Map<string, number>();
+  for (const item of otherItems) {
+    for (const svcName of item.services) {
+      const mock = MOCK_SERVICES.find(m => m.name === svcName);
+      const price = mock?.price ?? 0;
+      serviceMap.set(svcName, (serviceMap.get(svcName) ?? 0) + price);
+    }
+  }
+  const serviceRows = Array.from(serviceMap.entries()).map(([name, price]) => ({ name, price }));
+
+  // Labor: unique technicians across ALL job types × 400
+  const allTechIds = new Set<string>();
+  for (const job of jobs) job.technicians.forEach(t => allTechIds.add(t.id));
+  for (const item of otherItems) item.technicians.forEach(t => allTechIds.add(t.id));
+  const techCount = allTechIds.size;
   const laborCost = techCount * 400;
 
   const partsTotal = partRows.reduce((sum, r) => sum + r.price * r.qty, 0);
-  const subtotal = partsTotal + laborCost;
+  const servicesTotal = serviceRows.reduce((sum, r) => sum + r.price, 0);
+  const subtotal = partsTotal + servicesTotal + laborCost;
   const tax = subtotal * 0.07;
   const grand = subtotal + tax;
 
@@ -175,6 +191,14 @@ function InvoiceCard({ jobs }: { data: MockData; jobs: ServiceJob[] }) {
             </div>
           ))
         )}
+        {/* Other service rows */}
+        {serviceRows.map((r, i) => (
+          <div key={i} className="grid grid-cols-[2fr_1fr_1fr_1fr] px-5 py-1.5 text-sm text-slate-700" style={{ backgroundColor: '#D9EDF8' }}>
+            <span>• {r.name}</span>
+            <span /><span />
+            <span className="text-right">{fmt(r.price)}</span>
+          </div>
+        ))}
         {/* Summary rows */}
         <div className="px-5 pt-2 pb-3 bg-white border-t border-blue-100 space-y-0.5">
           <div className="grid grid-cols-[2fr_1fr_1fr_1fr] text-sm text-slate-700">
@@ -232,16 +256,16 @@ function DatePicker({ value, onChange }: { value: string; onChange: (v: string) 
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen(v => !v)}
-        className="w-28 text-center text-sm rounded-lg border border-blue-200 bg-white px-2 py-1 outline-none hover:border-blue-400"
+        className="w-28 text-center text-sm rounded-lg border border-blue-200 bg-white px-2 py-1 outline-none hover:border-blue-400 cursor-pointer"
       >
         {value || 'เลือกวันที่'}
       </button>
       {open && (
         <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-slate-200 rounded-xl shadow-lg p-3 w-56">
           <div className="flex items-center justify-between mb-2 text-sm font-semibold text-slate-700">
-            <button onClick={prevMonth} className="px-2 py-0.5 rounded hover:bg-slate-100">‹</button>
+            <button onClick={prevMonth} className="px-2 py-0.5 rounded hover:bg-slate-100 cursor-pointer">‹</button>
             <span>{thaiMonths[viewMonth]} {viewYear + 543}</span>
-            <button onClick={nextMonth} className="px-2 py-0.5 rounded hover:bg-slate-100">›</button>
+            <button onClick={nextMonth} className="px-2 py-0.5 rounded hover:bg-slate-100 cursor-pointer">›</button>
           </div>
           <div className="grid grid-cols-7 text-center text-[10px] text-slate-400 mb-1">
             {['อา','จ','อ','พ','พฤ','ศ','ส'].map(d => <div key={d}>{d}</div>)}
@@ -254,7 +278,7 @@ function DatePicker({ value, onChange }: { value: string; onChange: (v: string) 
               return (
                 <button key={day}
                   onClick={() => { onChange(formatBE(new Date(viewYear, viewMonth, day))); setOpen(false); }}
-                  className={`py-1 rounded-full text-[11px] leading-tight ${isSel ? 'bg-blue-600 text-white' : 'hover:bg-slate-100 text-slate-700'}`}
+                  className={`py-1 rounded-full text-[11px] leading-tight cursor-pointer ${isSel ? 'bg-blue-600 text-white' : 'hover:bg-slate-100 text-slate-700'}`}
                 >
                   {day}
                 </button>
@@ -302,7 +326,7 @@ function AppointmentCard({ data }: { data: MockData }) {
         <div className="font-bold text-slate-800 text-base">Appointment</div>
         <button
           onClick={() => setIsEditing((v) => !v)}
-          className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold"
+          className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold cursor-pointer"
           style={{ backgroundColor: '#EFF6FF', color: '#1D4ED8' }}
         >
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
@@ -372,11 +396,11 @@ const MOCK_PARTS = [
 ];
 
 const MOCK_SERVICES = [
-  { name: 'ล้างรถ' },
-  { name: 'เคลือบสี' },
-  { name: 'ดูดฝุ่นภายใน' },
-  { name: 'เปลี่ยนน้ำมันเกียร์' },
-  { name: 'ตรวจเช็คระบบเบรก' },
+  { name: 'ล้างรถ',              price: 300  },
+  { name: 'เคลือบสี',            price: 2500 },
+  { name: 'ดูดฝุ่นภายใน',        price: 200  },
+  { name: 'เปลี่ยนน้ำมันเกียร์', price: 800  },
+  { name: 'ตรวจเช็คระบบเบรก',   price: 500  },
 ];
 
 const MOCK_TECHNICIANS = [
@@ -433,7 +457,7 @@ function TechnicianPickerModal({ onAdd, onClose, assignedIds = [] }: { onAdd: (t
               key={t.id}
               onClick={() => !isAssigned && setSelected(t.id)}
               disabled={isAssigned}
-              className={`w-full text-left px-4 py-3 transition-colors ${isAssigned ? 'cursor-not-allowed' : selected === t.id ? '' : 'hover:bg-slate-50'}`}
+              className={`w-full text-left px-4 py-3 transition-colors ${isAssigned ? 'cursor-not-allowed' : 'cursor-pointer'} ${isAssigned ? '' : selected === t.id ? '' : 'hover:bg-slate-50'}`}
               style={isAssigned ? { backgroundColor: '#F1F5F9' } : selected === t.id ? { backgroundColor: '#E6F6FF' } : {}}
             >
               <div className="flex items-center justify-between">
@@ -454,7 +478,7 @@ function TechnicianPickerModal({ onAdd, onClose, assignedIds = [] }: { onAdd: (t
             </div>
             <button
               onClick={() => { onAdd({ id: selectedTech.id, name: selectedTech.name }); onClose(); }}
-              className="text-xs font-semibold text-white px-4 py-1.5 rounded-lg"
+              className="text-xs font-semibold text-white px-4 py-1.5 rounded-lg cursor-pointer"
               style={{ backgroundColor: '#1D4ED8' }}
             >
               เพิ่ม
@@ -504,7 +528,7 @@ function ServicePickerModal({ onAdd, onClose }: { onAdd: (name: string) => void;
             <button
               key={s.name}
               onClick={() => setSelected(s.name)}
-              className={`w-full text-left px-4 py-3 text-sm transition-colors ${selected === s.name ? 'font-semibold' : 'text-slate-700 hover:bg-slate-50'}`}
+              className={`w-full text-left px-4 py-3 text-sm transition-colors cursor-pointer ${selected === s.name ? 'font-semibold' : 'text-slate-700 hover:bg-slate-50'}`}
               style={selected === s.name ? { backgroundColor: '#E6F6FF', color: '#1E3A8A' } : {}}
             >
               {s.name}
@@ -517,7 +541,7 @@ function ServicePickerModal({ onAdd, onClose }: { onAdd: (name: string) => void;
             <span className="text-sm font-semibold text-slate-700">{selected}</span>
             <button
               onClick={() => { onAdd(selected); onClose(); }}
-              className="text-xs font-semibold text-white px-4 py-1.5 rounded-lg"
+              className="text-xs font-semibold text-white px-4 py-1.5 rounded-lg cursor-pointer"
               style={{ backgroundColor: '#1D4ED8' }}
             >
               เพิ่ม
@@ -580,13 +604,13 @@ function PartPickerModal({ onAdd, onClose }: { onAdd: (name: string, qty: number
           <div className="px-4 py-3 border-t border-slate-100 flex items-center gap-3">
             <span className="text-xs text-slate-500 flex-1 truncate">{selected}</span>
             <div className="flex items-center gap-2">
-              <button onClick={() => setQty(q => Math.max(1, q - 1))} className="w-6 h-6 rounded-full bg-slate-100 text-slate-600 text-sm font-bold flex items-center justify-center hover:bg-slate-200">−</button>
+              <button onClick={() => setQty(q => Math.max(1, q - 1))} className="w-6 h-6 rounded-full bg-slate-100 text-slate-600 text-sm font-bold flex items-center justify-center hover:bg-slate-200 cursor-pointer">−</button>
               <span className="text-sm font-semibold w-5 text-center">{qty}</span>
-              <button onClick={() => setQty(q => q + 1)} className="w-6 h-6 rounded-full bg-slate-100 text-slate-600 text-sm font-bold flex items-center justify-center hover:bg-slate-200">+</button>
+              <button onClick={() => setQty(q => q + 1)} className="w-6 h-6 rounded-full bg-slate-100 text-slate-600 text-sm font-bold flex items-center justify-center hover:bg-slate-200 cursor-pointer">+</button>
             </div>
             <button
               onClick={() => { onAdd(selected, qty); onClose(); }}
-              className="text-xs font-semibold text-white px-3 py-1.5 rounded-lg"
+              className="text-xs font-semibold text-white px-3 py-1.5 rounded-lg cursor-pointer"
               style={{ backgroundColor: '#1D4ED8' }}
             >
               เพิ่ม
@@ -628,7 +652,7 @@ function ServiceJobSection({ jobs, setJobs }: { jobs: ServiceJob[]; setJobs: Rea
       </div>
       <button
         onClick={addJob}
-        className="w-full py-3 rounded-lg text-sm font-semibold text-white"
+        className="w-full py-3 rounded-lg text-sm font-semibold text-white cursor-pointer"
         style={{ background: 'linear-gradient(to right, #002446, #1A3A5F)' }}
       >
         + Add Service Job Detail
@@ -657,7 +681,7 @@ function ServiceJobCard({ job, onChange, onDelete }: { job: ServiceJob; onChange
       {/* Header row */}
       <div className="flex items-center gap-3 px-4 py-3 flex-wrap">
         <span className="font-bold text-slate-800 text-sm">Service Job detail {job.id}</span>
-        <button onClick={onDelete} className="text-slate-300 hover:text-red-400 transition-colors" title="ลบ">
+        <button onClick={onDelete} className="text-slate-300 hover:text-red-400 transition-colors cursor-pointer" title="ลบ">
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2L12 12M12 2L2 12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/></svg>
         </button>
         <div className="flex items-center gap-2 ml-auto">
@@ -665,6 +689,7 @@ function ServiceJobCard({ job, onChange, onDelete }: { job: ServiceJob; onChange
             <circle cx="7.5" cy="7.5" r="6.5" stroke="currentColor" strokeWidth="1.2" />
             <path d="M7.5 4.5V7.5L9.5 9.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
           </svg>
+          <span className="text-red-400 -ml-1">*</span>
           <DatePicker value={job.timeStart} onChange={v => onChange({ ...job, timeStart: v })} />
           <span className="text-slate-400">-</span>
           <DatePicker value={job.timeEnd} onChange={v => onChange({ ...job, timeEnd: v })} />
@@ -683,7 +708,7 @@ function ServiceJobCard({ job, onChange, onDelete }: { job: ServiceJob; onChange
 
       {/* Detail */}
       <div className="px-4 pb-3">
-        <div className="text-xs font-semibold text-slate-600 mb-1">Detail</div>
+        <div className="text-xs font-semibold text-slate-600 mb-1">Detail <span className="text-red-400">*</span></div>
         <input
           value={job.detail}
           onChange={e => onChange({ ...job, detail: e.target.value })}
@@ -711,10 +736,10 @@ function ServiceJobCard({ job, onChange, onDelete }: { job: ServiceJob; onChange
             />
           )}
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-slate-600">Part</span>
+            <span className="text-xs font-semibold text-slate-600">Part <span className="text-red-400">*</span></span>
             <button
               onClick={() => setShowPartModal(true)}
-              className="text-xs font-semibold px-3 py-1 rounded-lg"
+              className="text-xs font-semibold px-3 py-1 rounded-lg cursor-pointer"
               style={{ backgroundColor: '#97D2FF', color: '#1E3A8A' }}
             >
               + Add Part
@@ -725,7 +750,7 @@ function ServiceJobCard({ job, onChange, onDelete }: { job: ServiceJob; onChange
             {job.parts.map((p, i) => (
               <div key={i} className="text-xs text-slate-700 flex items-center justify-between px-2 py-2">
                 <span><span className="text-slate-400 mr-1">•</span>{p.name} <span className="text-slate-400">×{p.qty}</span></span>
-                <button onClick={() => onChange({ ...job, parts: job.parts.filter((_, idx) => idx !== i) })} className="text-slate-300 hover:text-red-400 ml-2">✕</button>
+                <button onClick={() => onChange({ ...job, parts: job.parts.filter((_, idx) => idx !== i) })} className="text-slate-300 hover:text-red-400 ml-2 cursor-pointer">✕</button>
               </div>
             ))}
           </div>
@@ -741,10 +766,10 @@ function ServiceJobCard({ job, onChange, onDelete }: { job: ServiceJob; onChange
             />
           )}
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-slate-600">Assignment</span>
+            <span className="text-xs font-semibold text-slate-600">Assignment <span className="text-red-400">*</span></span>
             <button
               onClick={() => setShowTechModal(true)}
-              className="text-xs font-semibold px-3 py-1 rounded-lg"
+              className="text-xs font-semibold px-3 py-1 rounded-lg cursor-pointer"
               style={{ backgroundColor: '#97D2FF', color: '#1E3A8A' }}
             >
               + Add Technician
@@ -765,7 +790,7 @@ function ServiceJobCard({ job, onChange, onDelete }: { job: ServiceJob; onChange
                   <span>{t.id}</span>
                   <span className="flex items-center justify-between">
                     {t.name}
-                    <button onClick={() => onChange({ ...job, technicians: job.technicians.filter((_, idx) => idx !== i) })} className="text-slate-300 hover:text-red-400">✕</button>
+                    <button onClick={() => onChange({ ...job, technicians: job.technicians.filter((_, idx) => idx !== i) })} className="text-slate-300 hover:text-red-400 cursor-pointer">✕</button>
                   </span>
                 </div>
               ))
@@ -788,8 +813,7 @@ type OtherService = {
   technicians: { id: string; name: string }[];
 };
 
-function OtherServiceSection() {
-  const [items, setItems] = useState<OtherService[]>([]);
+function OtherServiceSection({ items, setItems }: { items: OtherService[]; setItems: React.Dispatch<React.SetStateAction<OtherService[]>> }) {
 
   const addItem = () =>
     setItems(prev => [...prev, {
@@ -822,7 +846,7 @@ function OtherServiceSection() {
       </div>
       <button
         onClick={addItem}
-        className="w-full py-3 rounded-lg text-sm font-semibold text-white"
+        className="w-full py-3 rounded-lg text-sm font-semibold text-white cursor-pointer"
         style={{ background: 'linear-gradient(to right, #002446, #1A3A5F)' }}
       >
         + Add Service
@@ -847,7 +871,7 @@ function OtherServiceCard({ item, onChange, onDelete }: { item: OtherService; on
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 flex-wrap">
         <span className="font-bold text-slate-800 text-sm">Service {item.id}</span>
-        <button onClick={onDelete} className="text-slate-300 hover:text-red-400 transition-colors">
+        <button onClick={onDelete} className="text-slate-300 hover:text-red-400 transition-colors cursor-pointer">
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2L12 12M12 2L2 12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/></svg>
         </button>
         <div className="flex items-center gap-2 ml-auto">
@@ -855,6 +879,7 @@ function OtherServiceCard({ item, onChange, onDelete }: { item: OtherService; on
             <circle cx="7.5" cy="7.5" r="6.5" stroke="currentColor" strokeWidth="1.2"/>
             <path d="M7.5 4.5V7.5L9.5 9.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
           </svg>
+          <span className="text-red-400 -ml-1">*</span>
           <DatePicker value={item.dateStart} onChange={v => onChange({ ...item, dateStart: v })} />
           <span className="text-slate-400">-</span>
           <DatePicker value={item.dateEnd} onChange={v => onChange({ ...item, dateEnd: v })} />
@@ -879,10 +904,10 @@ function OtherServiceCard({ item, onChange, onDelete }: { item: OtherService; on
             />
           )}
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-slate-600">Service</span>
+            <span className="text-xs font-semibold text-slate-600">Service <span className="text-red-400">*</span></span>
             <button
               onClick={() => setShowServiceModal(true)}
-              className="text-xs font-semibold px-3 py-1 rounded-lg"
+              className="text-xs font-semibold px-3 py-1 rounded-lg cursor-pointer"
               style={{ backgroundColor: '#97D2FF', color: '#1E3A8A' }}>
               + Add Service
             </button>
@@ -892,7 +917,7 @@ function OtherServiceCard({ item, onChange, onDelete }: { item: OtherService; on
             {item.services.map((s, i) => (
               <div key={i} className="text-xs text-slate-700 flex items-center justify-between px-2 py-2">
                 <span>{s}</span>
-                <button onClick={() => onChange({ ...item, services: item.services.filter((_, idx) => idx !== i) })} className="text-slate-300 hover:text-red-400 ml-2">✕</button>
+                <button onClick={() => onChange({ ...item, services: item.services.filter((_, idx) => idx !== i) })} className="text-slate-300 hover:text-red-400 ml-2 cursor-pointer">✕</button>
               </div>
             ))}
           </div>
@@ -908,10 +933,10 @@ function OtherServiceCard({ item, onChange, onDelete }: { item: OtherService; on
             />
           )}
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-slate-600">Assignment</span>
+            <span className="text-xs font-semibold text-slate-600">Assignment <span className="text-red-400">*</span></span>
             <button
               onClick={() => setShowTechModal(true)}
-              className="text-xs font-semibold px-3 py-1 rounded-lg"
+              className="text-xs font-semibold px-3 py-1 rounded-lg cursor-pointer"
               style={{ backgroundColor: '#97D2FF', color: '#1E3A8A' }}>
               + Add Technician
             </button>
@@ -930,7 +955,7 @@ function OtherServiceCard({ item, onChange, onDelete }: { item: OtherService; on
                   <span>{t.id}</span>
                   <span className="flex items-center justify-between">
                     {t.name}
-                    <button onClick={() => onChange({ ...item, technicians: item.technicians.filter((_, idx) => idx !== i) })} className="text-slate-300 hover:text-red-400">✕</button>
+                    <button onClick={() => onChange({ ...item, technicians: item.technicians.filter((_, idx) => idx !== i) })} className="text-slate-300 hover:text-red-400 cursor-pointer">✕</button>
                   </span>
                 </div>
               ))
