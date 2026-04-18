@@ -59,11 +59,30 @@
 .form {
   display: flex;
   flex-direction: column;
+  gap: 40px;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
   gap: 24px;
 }
 
+.sectionTitle {
+  font-family: var(--font-inter), 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 24px;
+  letter-spacing: -0.2px;
+  color: #002446;
+  margin: 0 0 16px 0;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #E2E8F0;
+}
+
 .formRow {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 24px;
   align-items: flex-start;
 }
@@ -72,14 +91,14 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  flex: 1;
+  min-width: 0;
 }
 
 .formFieldSmall {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  width: 238px;
+  min-width: 0;
 }
 
 .formFieldFull {
@@ -241,11 +260,7 @@
 
 @media (max-width: 1024px) {
   .formRow {
-    flex-direction: column;
-  }
-  
-  .formFieldSmall {
-    width: 100%;
+    grid-template-columns: 1fr;
   }
   
   .contentArea {
