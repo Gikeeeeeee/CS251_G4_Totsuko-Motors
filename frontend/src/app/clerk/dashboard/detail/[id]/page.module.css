@@ -1,0 +1,504 @@
+.container {
+  min-height: 100vh;
+  background-color: #F8FAFC;
+}
+
+.main {
+  margin-left: 256px;
+  padding: 32px;
+  padding-top: 64px;
+}
+
+.content {
+  max-width: 80rem;
+  margin-left: auto;
+  margin-right: auto;
+  margin-bottom: 2rem;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 1.5rem;
+}
+
+.title {
+  font-size: 1.5rem;
+  line-height: 2rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: -0.025em;
+  color: #002446;
+  margin-bottom: 0.25rem;
+}
+
+.backLink {
+  color: #3b82f6;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+.backLink:hover {
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+.infoCard {
+  background-color: #ffffff;
+  padding: 1.5rem;
+  border-radius: 0.75rem;
+  border: 1px solid #f3f4f6;
+  box-shadow: 0 10px 30px rgba(7,30,39,0.05);
+  margin-bottom: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 3rem; /* lg:gap-12 */
+}
+@media (min-width: 1024px) {
+  .infoCard {
+    flex-direction: row;
+  }
+}
+
+.infoGrid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  row-gap: 1.5rem;
+}
+
+.infoLabel {
+  font-size: 0.75rem;
+  color: #6b7280;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+}
+
+.infoValue {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #002446;
+}
+
+.appointmentSection {
+  flex: 1;
+  border-left: 1px solid #f3f4f6;
+  padding-left: 2rem;
+}
+
+.appointmentRows {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.appointmentRow {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.appointmentLabel {
+  width: 6rem;
+  color: #4b5563;
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+.appointmentLabelRight {
+  width: 4rem;
+  color: #4b5563;
+  font-weight: 500;
+  margin-left: 1rem;
+  font-size: 0.875rem;
+  text-align: right;
+}
+
+.appointmentValue {
+  padding: 0.375rem 1rem;
+  background-color: #F3FAFF;
+  color: #002446;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+.estimationRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.estimationLabel {
+  color: #4b5563;
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+.estimationLabelMargin {
+  color: #4b5563;
+  font-weight: 500;
+  margin-left: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.estimationValue {
+  padding: 0.25rem 1rem;
+  background-color: #F3FAFF;
+  color: #002446;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  font-size: 0.875rem;
+  width: 2.5rem;
+  text-align: center;
+}
+
+.estimationValueHighlight {
+  padding: 0.25rem 1rem;
+  background-color: #E6F6FF;
+  color: #0284C7;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  font-size: 0.875rem;
+  width: 2.5rem;
+  text-align: center;
+}
+
+.sectionTitle {
+  font-size: 1.25rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: -0.025em;
+  color: #002446;
+  margin-bottom: 1rem;
+  margin-top: 2rem;
+}
+
+.jobSection {
+  background-color: #ffffff;
+  padding: 1.5rem;
+  border-radius: 0.75rem;
+  border: 1px solid #f3f4f6;
+  box-shadow: 0 10px 30px rgba(7,30,39,0.05);
+  margin-bottom: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.emptyMessage {
+  text-align: center;
+  padding: 2rem;
+  color: #9ca3af;
+}
+
+.jobCard {
+  border: 1px solid #f3f4f6;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  background-color: rgba(248, 250, 252, 0.5); /* #F8FAFC/50 */
+}
+
+.jobHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.jobTitle {
+  font-weight: 700;
+  color: #002446;
+  font-size: 1rem;
+}
+
+.jobControls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.dateGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #6b7280;
+}
+
+.dateBox {
+  padding: 0.25rem 0.75rem;
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05);
+}
+
+.dateSeparator {
+  color: #d1d5db;
+}
+
+.statusComplete {
+  padding: 0.375rem 1rem;
+  background-color: #86EFAC;
+  color: #14532D;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.025em;
+}
+
+.statusInProgress {
+  padding: 0.375rem 1rem;
+  background-color: #FEF08A;
+  color: #854D0E;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.025em;
+}
+
+.detailBlock {
+  margin-bottom: 1.25rem;
+}
+
+.detailLabel {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #002446;
+  margin-bottom: 0.5rem;
+}
+
+.detailBox {
+  width: 100%;
+  padding: 0.875rem;
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  color: #4b5563;
+  font-size: 0.875rem;
+  box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05);
+}
+
+.grid2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2rem;
+}
+
+.partBox {
+  width: 100%;
+  padding: 0.875rem;
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  color: #4b5563;
+  font-size: 0.875rem;
+  display: flex;
+  justify-content: space-between;
+  box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05);
+}
+
+.partIconGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.partDot {
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: 9999px;
+  background-color: #4b5563;
+}
+
+.partQty {
+  color: #6b7280;
+}
+
+.assignBox {
+  width: 100%;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  background-color: #ffffff;
+  font-size: 0.875rem;
+  box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05);
+}
+
+.assignHeader {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  background-color: #E6F6FF;
+  padding: 0.625rem;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #0284C7;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.assignCol1 {
+  grid-column: span 1 / span 1;
+  padding-left: 0.5rem;
+}
+
+.assignCol2 {
+  grid-column: span 2 / span 2;
+}
+
+.assignRowEven {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding: 0.625rem;
+  color: #002446;
+  border-bottom: 1px solid #f3f4f6;
+  background-color: #ffffff;
+}
+
+.assignRowOdd {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding: 0.625rem;
+  color: #002446;
+  background-color: #F3FAFF;
+}
+
+.assignId {
+  grid-column: span 1 / span 1;
+  padding-left: 0.5rem;
+  color: #6b7280;
+}
+
+.assignName {
+  grid-column: span 2 / span 2;
+  font-weight: 500;
+}
+
+.invoiceSection {
+  background-color: #ffffff;
+  padding: 1.5rem;
+  border-radius: 0.75rem;
+  border: 1px solid #f3f4f6;
+  box-shadow: 0 10px 30px rgba(7,30,39,0.05);
+}
+
+.invoiceWrapper {
+  width: 100%;
+  font-size: 0.875rem;
+}
+
+.invoiceHeader {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  background-color: #E6F6FF;
+  padding: 0.875rem;
+  border-top-left-radius: 0.5rem;
+  border-top-right-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #0284C7;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.invColName {
+  grid-column: span 8 / span 8;
+  padding-left: 0.5rem;
+}
+
+.invColQty {
+  grid-column: span 2 / span 2;
+  text-align: center;
+}
+
+.invColPrice {
+  grid-column: span 2 / span 2;
+  text-align: right;
+  padding-right: 1rem;
+}
+
+.invRowEven {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  padding: 0.875rem;
+  border-bottom: 1px solid #f3f4f6;
+  color: #002446;
+  background-color: #ffffff;
+}
+
+.invRowOdd {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  padding: 0.875rem;
+  border-bottom: 1px solid #E6F6FF;
+  color: #002446;
+  background-color: #F3FAFF;
+}
+
+.invNameGroup {
+  grid-column: span 8 / span 8;
+  padding-left: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+}
+
+.invDot {
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: 9999px;
+  background-color: #6b7280;
+}
+
+.invQtyVal {
+  grid-column: span 2 / span 2;
+  text-align: center;
+  color: #4b5563;
+}
+
+.invPriceVal {
+  grid-column: span 2 / span 2;
+  text-align: right;
+  padding-right: 1rem;
+  color: #4b5563;
+  font-weight: 500;
+}
+
+.invSummary {
+  padding: 1rem;
+  color: #4b5563;
+  font-size: 0.875rem;
+}
+
+.invSumRow {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.625rem;
+}
+
+.invSumVal {
+  padding-right: 1rem;
+  font-weight: 500;
+}
+
+.invTotalRow {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 700;
+  color: #002446;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid #f3f4f6;
+  font-size: 1rem;
+}
+
+.invTotalVal {
+  padding-right: 1rem;
+}
