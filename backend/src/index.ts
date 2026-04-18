@@ -2,13 +2,9 @@ import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import 'dotenv/config';
-import serviceJobRoutes from './service-job/service-job.route'; 
-import usePartRoutes from './add-part-usage/add-part-usage.route'
-import addServiceRoute from './modules/add-service/route';
-import getPurchasingPartsRoute from './modules/get-purchasing-parts/route';
-import clerkDashboardRouter from './modules/clerk-dashboard/route';
-
-import authRoutes from './routes/auth.routes';
+import serviceRoutes from './routes/service/service.routes';
+import partsRoutes from './routes/parts/parts.routes';
+import authRoutes from './routes/auth/auth.routes';
 
 const app = express();
 
@@ -22,11 +18,8 @@ app.use(cookieParser());
 
 // Routes
 app.use('/api/auth', authRoutes);
-app.use('/api/service', addServiceRoute);
-app.use('/api/parts', getPurchasingPartsRoute);
-app.use('/api/use-part', usePartRoutes)
-app.use('/service', clerkDashboardRouter);
-app.use('/api/service-job', serviceJobRoutes);
+app.use('/api/service', serviceRoutes);
+app.use('/api/parts', partsRoutes);
 
 // Health Check Route (เอาไว้ให้ FE ยิงมาเทสว่า BE ติดหรือยัง)
 app.get('/api/health', (req, res) => {
