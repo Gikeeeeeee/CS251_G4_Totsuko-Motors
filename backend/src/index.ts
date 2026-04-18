@@ -2,6 +2,7 @@ import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import 'dotenv/config';
+import usePartRoutes from './add-part-usage/add-part-usage.route'
 import addServiceRoute from './modules/add-service/route';
 import getPurchasingPartsRoute from './modules/get-purchasing-parts/route';
 import clerkDashboardRouter from './modules/clerk-dashboard/route';
@@ -22,7 +23,7 @@ app.use(cookieParser());
 app.use('/api/auth', authRoutes);
 app.use('/api/service', addServiceRoute);
 app.use('/api/parts', getPurchasingPartsRoute);
-
+app.use('/api/use-part', usePartRoutes)
 app.use('/service', clerkDashboardRouter);
 
 // Health Check Route (เอาไว้ให้ FE ยิงมาเทสว่า BE ติดหรือยัง)
