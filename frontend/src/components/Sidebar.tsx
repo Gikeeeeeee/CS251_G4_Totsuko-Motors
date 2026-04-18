@@ -30,9 +30,9 @@ export default function Sidebar() {
   ];
 
   return (
-    <aside className="w-64 min-h-screen bg-[#F1F5F9] border-r border-gray-200 flex flex-col">
+    <aside className="w-100 min-h-screen bg-[#F1F5F9] border-r border-gray-200 flex flex-col">
       {/* Logo Section */}
-      <div className="p-6 border-b border-gray-200">
+      <div className="p-6 h-[127px]">
         <div className="flex items-center gap-2 justify-center">
           <Image 
             src="/logo.png" 
@@ -60,10 +60,14 @@ export default function Sidebar() {
                     }
                   `}
                 >
+
                   <span className={isActive ? 'text-blue-600' : 'text-gray-500'}>
                     {item.icon}
                   </span>
-                  <span className="font-medium">{item.name}</span>
+
+                  <span className={isActive ? 'font-bold text-sm' : 'font-medium text-sm' }>
+                    {item.name}
+                    </span>
                 </Link>
               </li>
             );
