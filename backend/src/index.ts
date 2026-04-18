@@ -2,6 +2,7 @@ import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import 'dotenv/config';
+import clerkDashboardRouter from './modules/clerk-dashboard/route';
 
 import authRoutes from './routes/auth.routes';
 
@@ -17,6 +18,8 @@ app.use(cookieParser());
 
 // Routes
 app.use('/api/auth', authRoutes);
+
+app.use('/service', clerkDashboardRouter);
 
 // Health Check Route (เอาไว้ให้ FE ยิงมาเทสว่า BE ติดหรือยัง)
 app.get('/api/health', (req, res) => {
