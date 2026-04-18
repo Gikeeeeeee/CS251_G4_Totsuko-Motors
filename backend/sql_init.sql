@@ -31,6 +31,8 @@ CREATE TABLE IF NOT EXISTS "Technician" (
 CREATE TABLE IF NOT EXISTS "Customer" (
     "customer_id" VARCHAR(10) PRIMARY KEY,
     "name" VARCHAR(100) NOT NULL,
+    "phone" VARCHAR(20),
+    "address" TEXT,
     "email" VARCHAR(100),
     "user_id" VARCHAR(10) REFERENCES "UserAccount"("user_id")
 );
@@ -39,6 +41,7 @@ CREATE TABLE IF NOT EXISTS "Vehicle" (
     "vehicle_id" VARCHAR(10) PRIMARY KEY,
     "plate_number" VARCHAR(20) NOT NULL,
     "vehicle_type" VARCHAR(30),
+    "color" VARCHAR(30),
     "brand" VARCHAR(50),
     "model" VARCHAR(50),
     "year" INTEGER,
@@ -48,7 +51,7 @@ CREATE TABLE IF NOT EXISTS "Vehicle" (
 -- 3. งานซ่อมและนัดหมาย
 CREATE TABLE IF NOT EXISTS "ServiceRequest" (
     "request_id" VARCHAR(10) PRIMARY KEY,
-    "checking_date" DATE DEFAULT CURRENT_DATE,
+    "checking_date" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     "odometer" INT,
     "problem_description" TEXT,
     "request_status" VARCHAR(30) DEFAULT 'Pending',

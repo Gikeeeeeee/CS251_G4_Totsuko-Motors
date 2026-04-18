@@ -1,12 +1,14 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import 'dotenv/config';
+import addServiceRoute from './modules/add-service/route';
 
 const app = express();
 
 // Middlewares
 app.use(cors());
 app.use(express.json());
+app.use('/service', addServiceRoute);
 
 // Health Check Route (เอาไว้ให้ FE ยิงมาเทสว่า BE ติดหรือยัง)
 app.get('/api/health', (req: Request, res: Response) => {
