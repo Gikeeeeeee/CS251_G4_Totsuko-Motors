@@ -67,6 +67,66 @@ const mockData: ServiceRequest[] = [
         vehicleColor: 'Red',
         problemDescription: 'แมลงชนเข้ากับกระจกหน้ารถกระเด็นเข้าตาฉัน',
         status: 'INTAKE'
+    },
+    {
+        id: 6,
+        vehiclePlate: 'กกต 1112',
+        serviceId: 'SV015',
+        customerName: 'ศุภจี รองนายก',
+        vehicleModel: 'Honda Z',
+        vehicleColor: 'Red',
+        problemDescription: 'แมลงชนเข้ากับกระจกหน้ารถกระเด็นเข้าตาฉัน',
+        status: 'INTAKE'
+    },
+    {
+        id: 7,
+        vehiclePlate: 'กกต 1112',
+        serviceId: 'SV015',
+        customerName: 'ศุภจี รองนายก',
+        vehicleModel: 'Honda Z',
+        vehicleColor: 'Red',
+        problemDescription: 'แมลงชนเข้ากับกระจกหน้ารถกระเด็นเข้าตาฉัน',
+        status: 'INTAKE'
+    },
+    {
+        id: 8,
+        vehiclePlate: 'กกต 1112',
+        serviceId: 'SV015',
+        customerName: 'ศุภจี รองนายก',
+        vehicleModel: 'Honda Z',
+        vehicleColor: 'Red',
+        problemDescription: 'แมลงชนเข้ากับกระจกหน้ารถกระเด็นเข้าตาฉัน',
+        status: 'INTAKE'
+    },
+    {
+        id: 9,
+        vehiclePlate: 'กกต 1112',
+        serviceId: 'SV015',
+        customerName: 'ศุภจี รองนายก',
+        vehicleModel: 'Honda Z',
+        vehicleColor: 'Red',
+        problemDescription: 'แมลงชนเข้ากับกระจกหน้ารถกระเด็นเข้าตาฉัน',
+        status: 'INTAKE'
+    },
+    {
+        id: 10,
+        vehiclePlate: 'กกต 1112',
+        serviceId: 'SV015',
+        customerName: 'ศุภจี รองนายก',
+        vehicleModel: 'Honda Z',
+        vehicleColor: 'Red',
+        problemDescription: 'แมลงชนเข้ากับกระจกหน้ารถกระเด็นเข้าตาฉัน',
+        status: 'INTAKE'
+    },
+    {
+        id: 11,
+        vehiclePlate: 'กกต 1112',
+        serviceId: 'SV015',
+        customerName: 'ศุภจี รองนายก',
+        vehicleModel: 'Honda Z',
+        vehicleColor: 'Red',
+        problemDescription: 'แมลงชนเข้ากับกระจกหน้ารถกระเด็นเข้าตาฉัน',
+        status: 'INTAKE'
     }
 ];
 
@@ -79,6 +139,10 @@ export default function TechnicianPage() {
 
     // State สำหรับคำค้นหา
     const [searchTerm, setSearchTerm] = useState('');
+
+    // State สำหรับ Pagination
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
 
     // โหลดข้อมูลเมื่อหน้าเปิดครั้งแรก
     useEffect(() => {
@@ -100,11 +164,36 @@ export default function TechnicianPage() {
         loadData();
     }, []);
 
+    // คำนวณข้อมูลสำหรับหน้าปัจจุบัน
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const currentItems = requests.slice(indexOfFirstItem, indexOfLastItem);
+    const totalPages = Math.ceil(requests.length / itemsPerPage);
+
     // Function จัดการเมื่อคลิกปุ่ม Receive
     const handleReceive = (requestId: number) => {
         console.log('Receive request ID:', requestId);
         alert(`รับงาน ID: ${requestId}`);
         // TODO: เรียก API เพื่ออัพเดทสถานะ
+    };
+
+    // Function สำหรับเปลี่ยนหน้า
+    const handlePageChange = (pageNumber: number) => {
+        setCurrentPage(pageNumber);
+    };
+
+    // Function สำหรับไปหน้าถัดไป
+    const handleNextPage = () => {
+        if (currentPage < totalPages) {
+            setCurrentPage(currentPage + 1);
+        }
+    };
+
+    // Function สำหรับไปหน้าก่อนหน้า
+    const handlePrevPage = () => {
+        if (currentPage > 1) {
+            setCurrentPage(currentPage - 1);
+        }
     };
 
     // ถ้ากำลังโหลด แสดง Loading
@@ -194,7 +283,7 @@ export default function TechnicianPage() {
 
                                 {/* Table Body */}
                                 <tbody className="bg-white divide-y divide-gray-200">
-                                    {requests.map((request) => (
+                                    {currentItems.map((request) => (
                                         <tr key={request.id} className="hover:bg-gray-50 transition-colors">
 
                                             {/* คอลัมน์ 1: Vehicle Plate / Service ID */}
@@ -254,16 +343,51 @@ export default function TechnicianPage() {
                         <div className="px-6 py-4 bg-white flex items-center justify-between">
                             {/* ซ้าย: จำนวนข้อมูล */}
                             <div className="text-sm text-gray-700">
-                                Show <span className="font-medium">10</span> of{' '}
+                                Show <span className="font-medium">{indexOfFirstItem + 1}</span> to{' '}
+                                <span className="font-medium">{Math.min(indexOfLastItem, requests.length)}</span> of{' '}
                                 <span className="font-medium">{requests.length}</span> services
                             </div>
 
                             {/* ขวา: Pagination Buttons */}
-                            <div className="flex gap-2">
-                                <button className="px-3 py-1 bg-[#002448] text-white rounded text-sm font-medium">
-                                    1
+                            <div className="flex gap-2 items-center">
+                                {/* ปุ่มก่อนหน้า */}
+                                <button
+                                    onClick={handlePrevPage}
+                                    disabled={currentPage === 1}
+                                    className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                                        currentPage === 1
+                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                            : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                                    }`}
+                                >
+                                    ←
                                 </button>
-                                <button className="px-3 py-1 bg-white border border-gray-300 text-gray-700 rounded text-sm hover:bg-gray-50 transition-colors">
+
+                                {/* ปุ่มเลขหน้า */}
+                                {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNumber) => (
+                                    <button
+                                        key={pageNumber}
+                                        onClick={() => handlePageChange(pageNumber)}
+                                        className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                                            currentPage === pageNumber
+                                                ? 'bg-[#002448] text-white'
+                                                : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                                        }`}
+                                    >
+                                        {pageNumber}
+                                    </button>
+                                ))}
+
+                                {/* ปุ่มถัดไป */}
+                                <button
+                                    onClick={handleNextPage}
+                                    disabled={currentPage === totalPages}
+                                    className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                                        currentPage === totalPages
+                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                            : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                                    }`}
+                                >
                                     →
                                 </button>
                             </div>
