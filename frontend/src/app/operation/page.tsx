@@ -48,6 +48,7 @@ const MOCK: MockData = {
 export default function OperatingPage() {
   const [data, setData] = useState<MockData | null>(null);
   const [jobs, setJobs] = useState<ServiceJob[]>([]);
+  const [otherItems, setOtherItems] = useState<OtherService[]>([]);
 
   return (
     <div>
@@ -79,7 +80,7 @@ export default function OperatingPage() {
             {/* แผ่น 1: ป้ายทะเบียน */}
             <div className="bg-white rounded-xl border border-slate-200 flex flex-col items-center justify-center px-6 py-2 min-w-90">
               <div className="text-4xl font-bold text-slate-800">{data.plate}</div>
-              <div className="text-xl text-slate-400 mt-1">{data.province}</div>
+              <div className="text-xl text-slate-800 mt-1">{data.province}</div>
             </div>
 
             {/* แผ่น 2: รูปรถ */}
@@ -107,7 +108,7 @@ export default function OperatingPage() {
             <ServiceJobSection jobs={jobs} setJobs={setJobs} />
 
             {/* Other Service */}
-            <OtherServiceSection />
+            <OtherServiceSection items={otherItems} setItems={setOtherItems} />
 
           </div>
 
@@ -115,7 +116,7 @@ export default function OperatingPage() {
           <AppointmentCard data={data} />
 
           {/* Invoice Card */}
-          <InvoiceCard data={data} jobs={jobs} />
+          <InvoiceCard data={data} jobs={jobs} otherItems={otherItems} />
 
         </div>
       )}
@@ -123,8 +124,8 @@ export default function OperatingPage() {
   );
 }
 
-function InvoiceCard({ jobs }: { data: MockData; jobs: ServiceJob[] }) {
-  // Aggregate parts across all jobs
+function InvoiceCard({ jobs, otherItems }: { data: MockData; jobs: ServiceJob[]; otherItems: OtherService[] }) {
+  // Aggregate parts across all service jobs
   const partsMap = new Map<string, { qty: number; price: number; stockQty: number }>();
   for (const job of jobs) {
     for (const p of job.parts) {
@@ -138,12 +139,27 @@ function InvoiceCard({ jobs }: { data: MockData; jobs: ServiceJob[] }) {
   }
   const partRows = Array.from(partsMap.entries()).map(([name, v]) => ({ name, ...v }));
 
-  // Labor: total technician assignments × 400
-  const techCount = jobs.reduce((sum, job) => sum + job.technicians.length, 0);
+  // Aggregate other services (deduplicate same service name, sum prices)
+  const serviceMap = new Map<string, number>();
+  for (const item of otherItems) {
+    for (const svcName of item.services) {
+      const mock = MOCK_SERVICES.find(m => m.name === svcName);
+      const price = mock?.price ?? 0;
+      serviceMap.set(svcName, (serviceMap.get(svcName) ?? 0) + price);
+    }
+  }
+  const serviceRows = Array.from(serviceMap.entries()).map(([name, price]) => ({ name, price }));
+
+  // Labor: unique technicians across ALL job types × 400
+  const allTechIds = new Set<string>();
+  for (const job of jobs) job.technicians.forEach(t => allTechIds.add(t.id));
+  for (const item of otherItems) item.technicians.forEach(t => allTechIds.add(t.id));
+  const techCount = allTechIds.size;
   const laborCost = techCount * 400;
 
   const partsTotal = partRows.reduce((sum, r) => sum + r.price * r.qty, 0);
-  const subtotal = partsTotal + laborCost;
+  const servicesTotal = serviceRows.reduce((sum, r) => sum + r.price, 0);
+  const subtotal = partsTotal + servicesTotal + laborCost;
   const tax = subtotal * 0.07;
   const grand = subtotal + tax;
 
@@ -175,6 +191,14 @@ function InvoiceCard({ jobs }: { data: MockData; jobs: ServiceJob[] }) {
             </div>
           ))
         )}
+        {/* Other service rows */}
+        {serviceRows.map((r, i) => (
+          <div key={i} className="grid grid-cols-[2fr_1fr_1fr_1fr] px-5 py-1.5 text-sm text-slate-700" style={{ backgroundColor: '#D9EDF8' }}>
+            <span>• {r.name}</span>
+            <span /><span />
+            <span className="text-right">{fmt(r.price)}</span>
+          </div>
+        ))}
         {/* Summary rows */}
         <div className="px-5 pt-2 pb-3 bg-white border-t border-blue-100 space-y-0.5">
           <div className="grid grid-cols-[2fr_1fr_1fr_1fr] text-sm text-slate-700">
@@ -372,11 +396,11 @@ const MOCK_PARTS = [
 ];
 
 const MOCK_SERVICES = [
-  { name: 'ล้างรถ' },
-  { name: 'เคลือบสี' },
-  { name: 'ดูดฝุ่นภายใน' },
-  { name: 'เปลี่ยนน้ำมันเกียร์' },
-  { name: 'ตรวจเช็คระบบเบรก' },
+  { name: 'ล้างรถ',              price: 300  },
+  { name: 'เคลือบสี',            price: 2500 },
+  { name: 'ดูดฝุ่นภายใน',        price: 200  },
+  { name: 'เปลี่ยนน้ำมันเกียร์', price: 800  },
+  { name: 'ตรวจเช็คระบบเบรก',   price: 500  },
 ];
 
 const MOCK_TECHNICIANS = [
@@ -788,8 +812,7 @@ type OtherService = {
   technicians: { id: string; name: string }[];
 };
 
-function OtherServiceSection() {
-  const [items, setItems] = useState<OtherService[]>([]);
+function OtherServiceSection({ items, setItems }: { items: OtherService[]; setItems: React.Dispatch<React.SetStateAction<OtherService[]>> }) {
 
   const addItem = () =>
     setItems(prev => [...prev, {
