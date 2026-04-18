@@ -2,6 +2,7 @@ import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import 'dotenv/config';
+import serviceJobRoutes from './service-job/service-job.route'; 
 import usePartRoutes from './add-part-usage/add-part-usage.route'
 import addServiceRoute from './modules/add-service/route';
 import getPurchasingPartsRoute from './modules/get-purchasing-parts/route';
@@ -25,6 +26,7 @@ app.use('/api/service', addServiceRoute);
 app.use('/api/parts', getPurchasingPartsRoute);
 app.use('/api/use-part', usePartRoutes)
 app.use('/service', clerkDashboardRouter);
+app.use('/api/service-job', serviceJobRoutes);
 
 // Health Check Route (เอาไว้ให้ FE ยิงมาเทสว่า BE ติดหรือยัง)
 app.get('/api/health', (req, res) => {

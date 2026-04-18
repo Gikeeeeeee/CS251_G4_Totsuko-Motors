@@ -1,0 +1,62 @@
+import { Request, Response } from 'express'
+import { Pool } from 'pg'
+import 'dotenv/config'
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+})
+
+export const updateServiceJob = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params
+    const {
+      service_details,
+      job_status,
+      labor_cost,
+      start_time,
+      end_time
+    } = req.body
+
+    let updates: string[] = []
+
+    if (service_details !== undefined && service_details.trim() !== "") 
+      updates.push(`service_details = '${service_details.trim()}'`)
+
+    if (job_status !== undefined && job_status.trim() !== "")
+      updates.push(`job_status = '${job_status.trim()}'`)
+
+    if (labor_cost !== undefined)
+      updates.push(`labor_cost = ${labor_cost}`)
+
+    if (start_time !== undefined && start_time.trim() !== "")
+      updates.push(`start_time = '${start_time}'`)
+
+    if (end_time !== undefined)
+      updates.push(
+        (end_time && end_time.trim() !== "") 
+          ? `end_time = '${end_time}'` 
+          : `end_time = NULL`
+      )
+
+
+    if (updates.length === 0) {
+      return res.status(400).json({
+        error: 'ไม่มี field ให้อัปเดต'
+      })
+    }
+
+    const query = `
+      UPDATE "ServiceJob"
+      SET ${updates.join(', ')}
+      WHERE service_id = '${id}'
+      RETURNING *
+    `
+
+    const result = await pool.query(query)
+
+    res.json(result.rows)
+
+  } catch (err: any) {
+    res.status(500).json({ error: err.message })
+  }
+}
