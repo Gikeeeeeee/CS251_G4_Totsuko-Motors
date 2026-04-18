@@ -8,8 +8,8 @@ export default function TopNavClerk() {
         <div className={styles.divider}></div>
         <div className={styles.userInfo}>
           <div className={styles.userText}>
-            <div className={styles.userName}>JOHNDO</div>
-            <div className={styles.userRole}>Clerk</div>
+            <div className={styles.userName}>Jamelo</div>
+            <div className={styles.userRole}>Tecnician</div>
           </div>
           <div className={styles.avatar}></div>
         </div>
