@@ -83,9 +83,9 @@ export default function ClerkDashboard() {
   const getStatusColorClass = (status: string) => {
     switch (status) {
       case 'REPAIRING': return 'bg-[#3B82F6]'; // Blue
-      case 'RECIEVED': return 'bg-[#94A3B8]'; // Gray
-      case 'CANCELED': return 'bg-[#EF4444]'; // Red
-      case 'COMPLETED': return 'bg-[#22C55E]'; // Green
+      case 'RECIEVED': return 'bg-[#CBD5E1]'; // Light Gray
+      case 'CANCELED': return 'bg-[#FCA5A5]'; // Light Red
+      case 'COMPLETED': return 'bg-[#86EFAC]'; // Light Green
       default: return 'bg-gray-500';
     }
   }
@@ -212,7 +212,7 @@ export default function ClerkDashboard() {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-gray-100 text-xs text-[#002446] font-bold uppercase tracking-wider bg-white">
+                <tr className="border-b border-gray-100 text-xs text-[#64748B] font-bold uppercase tracking-wider bg-[#f2faff]">
                   <th className="py-4 px-6 font-bold w-[180px]">VEHICLE PLATE<br />/ SERVICE ID</th>
                   <th className="py-4 px-6 font-bold w-[200px]">CUSTOMER</th>
                   <th className="py-4 px-6 font-bold w-[350px]">PROBLEM DESCRIPTION</th>
@@ -226,7 +226,7 @@ export default function ClerkDashboard() {
                   <tr key={idx} className="hover:bg-gray-50/50 transition-colors bg-white">
                     <td className="py-4 px-6">
                       <div className="flex items-center">
-                        <div className={`w-[3px] h-8 rounded-full ${getStatusColorClass(service.status)} mr-4 flex-shrink-0`}></div>
+                        <div className={`w-[4px] h-10 rounded-full ${getStatusColorClass(service.status)} mr-4 flex-shrink-0`}></div>
                         <div>
                           <div className="font-bold text-[#0F172A] text-sm">{service.plate}</div>
                           <div className="text-xs text-gray-500">{service.id}</div>
@@ -271,8 +271,8 @@ export default function ClerkDashboard() {
                   key={page}
                   onClick={() => setCurrentPage(page)}
                   className={`w-6 h-6 flex items-center justify-center rounded text-xs font-bold transition-colors ${currentPage === page
-                      ? "bg-[#1E293B] text-white"
-                      : "text-gray-600 hover:bg-gray-100"
+                    ? "bg-[#1E293B] text-white"
+                    : "text-gray-600 hover:bg-gray-100"
                     }`}
                 >
                   {page}
