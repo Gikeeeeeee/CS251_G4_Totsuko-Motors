@@ -7,20 +7,7 @@ import Link from 'next/link'
 import apiClient from '@/services/apiClient';
 
 export default function ClerkDashboard() {
-  const mockData = [
-    { plate: "4ขฒ693", id: "sv011", customer: "พีรภัทร เอกนิษฐ์", car: "Toyota Yaris 2022 (white)", problem: "ลืมเก็บขยะในรถ, ยางระเบิด, Amazon Web Service", status: "REPAIRING", time: "14:30" },
-    { plate: "สส 911", id: "sv012", customer: "ธีรเมธ บุญประเสริฐชัย", car: "Tesla Model 3 2019 (blue)", problem: "ระบบเบรคมีปัญหา", status: "RECIEVED", time: "14:45" },
-    { plate: "อมก 6773", id: "sv013", customer: "นวพรรณ กำไรสุข", car: "Ford F-150 2014 (black)", problem: "Steering wheel มีปัญหา", status: "CANCELED", time: "-----" },
-    { plate: "ตกก 8934", id: "sv014", customer: "ปวริศร มั่งนิมิตร", car: "Honda Civic 2020 (grey)", problem: "ตรวจเช็คน้ำมันเครื่อง, ต้องตรวจเช็คสภาพยาง", status: "COMPLETED", time: "READY" },
-    { plate: "กก 4321", id: "sv015", customer: "เห้ย เจมส์เจมส์", car: "Honda Civic 2020 (grey)", problem: "เช็คน้ำมันเครื่อง, ตรวจเช็คสภาพทั่วไป", status: "COMPLETED", time: "READY" },
-    { plate: "6สด 403", id: "sv015", customer: "สุข สมานแผล", car: "Honda Civic 2020 (grey)", problem: "เช็คน้ำมันเครื่อง, ตรวจเช็คสภาพทั่วไป", status: "COMPLETED", time: "READY" },
-    { plate: "ทย 981", id: "sv016", customer: "ไข่ แมวดำ", car: "Honda Civic 2020 (grey)", problem: "ยางหน้ารั่ว", status: "COMPLETED", time: "READY" },
-    { plate: "นด 6969", id: "sv017", customer: "อนุถวย หัวคิน", car: "Honda Civic 2020 (grey)", problem: "ตรวจเช็คน้ำมันเครื่อง, ต้องตรวจเช็คสภาพยาง", status: "COMPLETED", time: "READY" },
-    { plate: "ยก 3214", id: "sv018", customer: "สมใจ กันบ้าง", car: "Honda Civic 2020 (grey)", problem: "ประตูฝั่งคนขับบุบ, สีรถร่อนและเสียหาย", status: "COMPLETED", time: "READY" },
-    { plate: "ทป 7654", id: "sv019", customer: "เมิน ห่างเหินเดินหนี", car: "Honda Civic 2020 (grey)", problem: "ตรวจเช็คน้ำมันเครื่อง, ต้องตรวจเช็คสภาพยาง", status: "COMPLETED", time: "READY" },
-    { plate: "ทค 1122", id: "sv020", customer: "สมเกียรติ ยิ่งเจริญ", car: "Nissan Almera 2021 (red)", problem: "เปลี่ยนถ่ายน้ำมันเครื่อง", status: "RECIEVED", time: "10:00" },
-    { plate: "งจ 9999", id: "sv021", customer: "วิภาดา สุขใจ", car: "Mazda 2 2018 (white)", problem: "แอร์ไม่เย็น", status: "REPAIRING", time: "16:00" }
-  ];
+
 
   const [recentServices, setRecentServices] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -31,15 +18,24 @@ export default function ClerkDashboard() {
   useEffect(() => {
     const fetchServices = async () => {
       try {
-        const response = await apiClient.get('/services');
-        if (response.data && response.data.length > 0) {
-          setRecentServices(response.data);
+        const response = await apiClient.get('/service/service-request');
+        if (response.data && response.data.data && response.data.data.length > 0 || response.data.success == true) {
+          const mappedData = response.data.data.map((item: any) => ({
+            plate: item.plateNumber,
+            id: item.requestId,
+            customer: item.customerName,
+            car: `${item.vehicleMake || ""} ${item.vehicleModel || ""} ${item.vehicleColor || ""}`.trim() || "-",
+            problem: item.problemDescription || "-",
+            status: item.requestStatus ? item.requestStatus.toUpperCase() : "PENDING",
+            time: item.checkingDate ? new Date(item.checkingDate).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : "-"
+          }));
+          setRecentServices(mappedData);
         } else {
-          setRecentServices(mockData);
+          setRecentServices([]);
         }
       } catch (error) {
         console.error("Error fetching services:", error);
-        setRecentServices(mockData);
+        setRecentServices([]);
       }
     };
     fetchServices();

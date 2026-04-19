@@ -4,117 +4,57 @@ import Link from 'next/link'
 import apiClient from '@/services/apiClient';
 import styles from './page.module.css';
 
-const mockServiceDetails: any = {
-  "sv011": {
-    id: "sv011",
-    customer: "พีรภัทร เอกนิษฐ์",
-    model: "Veroz",
-    color: "White",
-    plate: "4ขฒ 6931 กรุงเทพ",
-    vehicleName: "Totoya",
-    year: "2022",
-    appointment: {
-      checkIn: "12 / 01 / 2026",
-      repair: "13 / 01 / 2026",
-      estimatedDays: "3",
-      estimatedHours: "-",
-      estimatedMins: "-"
-    },
-    jobs: [
-      {
-        id: 1,
-        startDate: "12 / 01 / 2026",
-        endDate: "13 / 01 / 2026",
-        status: "In Progress",
-        detail: "เปลี่ยนเครื่องยนต์",
-        part: "Engine AGx86-64",
-        qty: "1",
-        assignments: [
-          { id: "321847430", name: "นาย ชราวุฒิ คงไครควรครอง" },
-          { id: "321321284", name: "นาย ภัทรพี คลองหนึ่งปทุม" }
-        ]
-      },
-      {
-        id: 2,
-        startDate: "12 / 01 / 2026",
-        endDate: "12 / 01 / 2026",
-        status: "Complete",
-        detail: "เปลี่ยนเบาะรถ เบาะไฟฟ้าชำรุด สายพานเสีย",
-        part: "เบาะไฟฟ้าสำหรับคนขับ",
-        qty: "1",
-        assignments: [
-          { id: "321847429", name: "นาย ยากามาโตะ ซากาโมโต้" },
-          { id: "321321276", name: "นาย แดง เสี่ยวซ้าย" }
-        ]
-      }
-    ],
-    invoice: {
-      parts: [
-        { name: "Engine AGx86-64", qty: 1, price: "136,000.00" },
-        { name: "เบาะไฟฟ้าสำหรับคนขับ", qty: 1, price: "60,300.00" }
-      ],
-      labor: "1,500.00",
-      tax: "14,196.00",
-      total: "220,000.00"
-    }
-  },
-  "sv012": {
-    id: "sv012",
-    customer: "ธีรเมธ บุญประเสริฐชัย",
-    model: "Model 3",
-    color: "Blue",
-    plate: "สส 911 กรุงเทพ",
-    vehicleName: "Tesla",
-    year: "2019",
-    appointment: {
-      checkIn: "14 / 01 / 2026",
-      repair: "15 / 01 / 2026",
-      estimatedDays: "1",
-      estimatedHours: "4",
-      estimatedMins: "30"
-    },
-    jobs: [
-      {
-        id: 1,
-        startDate: "15 / 01 / 2026",
-        endDate: "15 / 01 / 2026",
-        status: "In Progress",
-        detail: "ซ่อมระบบเบรคหน้า",
-        part: "Brake Pad T-332",
-        qty: "2",
-        assignments: [
-          { id: "321847111", name: "นาย สมชาย สายเบรค" }
-        ]
-      }
-    ],
-    invoice: {
-      parts: [
-        { name: "Brake Pad T-332", qty: 2, price: "4,500.00" }
-      ],
-      labor: "800.00",
-      tax: "371.00",
-      total: "5,671.00"
-    }
-  }
-};
+
 
 export default async function ServiceDetailDynamic({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   
   let apiData = null;
   try {
-    const response = await apiClient.get(`/services/${id}`);
-    if (response.data) {
-      apiData = response.data;
+    const response = await apiClient.get('/service/service-request');
+    if (response.data && response.data.data) {
+      const match = response.data.data.find((item: any) => String(item.requestId) === id || item.requestId === id);
+      if (match) {
+        apiData = {
+          id: match.requestId,
+          customer: match.customerName || "-",
+          model: "-",
+          color: "-",
+          plate: match.plateNumber || "-",
+          vehicleName: "-",
+          year: "-",
+          appointment: {
+            checkIn: match.checkingDate ? new Date(match.checkingDate).toLocaleDateString('th-TH') : "- / - / -",
+            repair: "- / - / -",
+            estimatedDays: "-",
+            estimatedHours: "-",
+            estimatedMins: "-"
+          },
+          jobs: match.problemDescription ? [{
+            id: 1,
+            startDate: match.checkingDate ? new Date(match.checkingDate).toLocaleDateString('th-TH') : "-",
+            endDate: "-",
+            status: match.requestStatus || "Pending",
+            detail: match.problemDescription,
+            assignments: match.clerkName ? [{ id: "clerk", name: match.clerkName }] : []
+          }] : [],
+          invoice: {
+            parts: [],
+            labor: "0.00",
+            tax: "0.00",
+            total: "0.00"
+          }
+        };
+      }
     }
   } catch (error) {
     console.error(`Error fetching service detail for ${id}:`, error);
   }
   
-  // Try to find the detail in API response, or in our mock database, or fallback to a default/generic one if not found
-  const data = apiData || mockServiceDetails[id] || {
+  // Only use API data or a default empty structure if not found
+  const data = apiData || {
     id: id,
-    customer: "ข้อมูลจำลอง (ไม่ได้อยู่ใน Mock และ API)",
+    customer: "ไม่พบข้อมูลในระบบ",
     model: "-",
     color: "-",
     plate: "-",
