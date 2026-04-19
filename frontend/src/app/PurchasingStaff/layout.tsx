@@ -20,7 +20,7 @@ export default function PurchasingLayout({ children }: { children: React.ReactNo
         
         {/* Main Content: ใช้ overflow-y-auto เพื่อให้ Scroll ได้เฉพาะส่วนนี้ */}
         <main className="flex-1 overflow-y-auto">
-          <div className="p-12 max-w-[1440px] mx-auto">
+          <div className="pt-28 pb-12 px-12 max-w-[1440px] mx-auto">
              {children}
           </div>
         </main>
