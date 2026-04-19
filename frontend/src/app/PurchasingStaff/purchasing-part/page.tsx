@@ -1,59 +1,84 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import styles from './PurchasingPart.module.css'
+import apiClient from '@/services/apiClient'
 
 interface Part {
-  id: string;
-  name: string;
-  qty: number;
-  status: 'inventory' | 'out_of_stock' | 'waiting';
-  price: number;
+  part_id: string;
+  part_name: string;
+  stock_qty: number;
+  status: 'Inventory' | 'Nearly Out of Stock' | 'Waiting for delivery';
+  price: string | number | null;
 }
 
-const MOCK_DATA: Part[] = [
-  { id: 'EDEJ3210490D', name: 'ENGINE AGX86-64', qty: 12, status: 'inventory', price: 130000 },
-  { id: 'EDEJ3210490B', name: 'ENGINE AGX86-64 A', qty: 16, status: 'inventory', price: 145000 },
-  { id: 'EDEJ3210490DA', name: 'ENGINE AGX86-64 P', qty: 20, status: 'inventory', price: 320000 },
-  { id: 'EDEJ321049213', name: 'BRIDGESTONE F A(ยางหน้า)', qty: 60, status: 'inventory', price: 3000 },
-  { id: 'EDEJ321049212', name: 'BRIDGESTONE B A(ยางหลัง)', qty: 65, status: 'inventory', price: 3500 },
-  { id: 'EDEJ321049202', name: 'BRIDGESTONE F 02B (ยางหน้า)', qty: 12, status: 'inventory', price: 2200 },
-  { id: 'EDEJ321049203', name: 'BRIDGESTONE B 02B (ยางหลัง)', qty: 9, status: 'inventory', price: 2500 },
-  { id: 'EDEJ321049RF3', name: 'SPARKING PLUG', qty: 47, status: 'inventory', price: 400 },
-  { id: 'FFEJOWPJPO123', name: 'HEADLIGHT', qty: 30, status: 'inventory', price: 22000 },
-  { id: '4U90JFI9392772', name: 'TAIL LAMP', qty: 28, status: 'inventory', price: 30000 },
-  // More data for pagination testing
-  { id: 'PART-011', name: 'BRAKE PAD', qty: 5, status: 'out_of_stock', price: 1500 },
-  { id: 'PART-012', name: 'AIR FILTER', qty: 2, status: 'out_of_stock', price: 800 },
-  { id: 'PART-013', name: 'OIL FILTER', qty: 0, status: 'waiting', price: 500 },
-  { id: 'PART-014', name: 'WIPER BLADE', qty: 15, status: 'waiting', price: 300 },
-];
-
 export default function PurchasingPartPage() {
-  const [filter, setFilter] = useState<'all' | 'inventory' | 'out_of_stock' | 'waiting'>('all');
+  const [filter, setFilter] = useState<'all' | 'Inventory' | 'Nearly Out of Stock' | 'Waiting for delivery'>('all');
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [parts, setParts] = useState<Part[]>([]);
+  const [stats, setStats] = useState({
+    all: 0,
+    inventory: 0,
+    outOfStock: 0,
+    waiting: 0,
+  });
+  const [loading, setLoading] = useState(true);
+
   const itemsPerPage = 10;
 
+  // Fetch all parts once to calculate stats
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await apiClient.get('/parts/purchasing');
+        if (response.data && response.data.data) {
+          const allParts: Part[] = response.data.data;
+          setStats({
+            all: allParts.length,
+            inventory: allParts.filter(p => p.status === 'Inventory').length,
+            outOfStock: allParts.filter(p => p.status === 'Nearly Out of Stock').length,
+            waiting: allParts.filter(p => p.status === 'Waiting for delivery').length,
+          });
+        }
+      } catch (error) {
+        console.error('Failed to fetch stats:', error);
+      }
+    };
+    fetchStats();
+  }, []);
+
+  // Fetch filtered parts
+  useEffect(() => {
+    const fetchParts = async () => {
+      setLoading(true);
+      try {
+        const params = filter === 'all' ? {} : { status: filter };
+        const response = await apiClient.get('/parts/purchasing', { params });
+        if (response.data && response.data.data) {
+          setParts(response.data.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch parts:', error);
+        setParts([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchParts();
+  }, [filter]);
+
   const filteredData = useMemo(() => {
-    return MOCK_DATA.filter(part => {
-      const matchesFilter = filter === 'all' || part.status === filter;
-      const matchesSearch = part.id.toLowerCase().includes(search.toLowerCase()) || 
-                            part.name.toLowerCase().includes(search.toLowerCase());
-      return matchesFilter && matchesSearch;
+    return parts.filter(part => {
+      const matchesSearch = part.part_id.toLowerCase().includes(search.toLowerCase()) || 
+                            part.part_name.toLowerCase().includes(search.toLowerCase());
+      return matchesSearch;
     });
-  }, [filter, search]);
+  }, [parts, search]);
 
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
   const paginatedData = filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-
-  const stats = {
-    all: MOCK_DATA.length,
-    inventory: MOCK_DATA.filter(p => p.status === 'inventory').length,
-    out_of_stock: MOCK_DATA.filter(p => p.status === 'out_of_stock').length,
-    waiting: MOCK_DATA.filter(p => p.status === 'waiting').length,
-  };
 
   return (
     <div className={styles.container}>
@@ -76,8 +101,8 @@ export default function PurchasingPartPage() {
         </div>
 
         <div 
-          className={`${styles.filterCard} ${filter === 'inventory' ? styles.filterCardActive : ''}`}
-          onClick={() => { setFilter('inventory'); setCurrentPage(1); }}
+          className={`${styles.filterCard} ${filter === 'Inventory' ? styles.filterCardActive : ''}`}
+          onClick={() => { setFilter('Inventory'); setCurrentPage(1); }}
         >
           <div className={styles.cardTop}>
             <div className={styles.cardLabel}>
@@ -90,8 +115,8 @@ export default function PurchasingPartPage() {
         </div>
 
         <div 
-          className={`${styles.filterCard} ${filter === 'out_of_stock' ? styles.filterCardActive : ''}`}
-          onClick={() => { setFilter('out_of_stock'); setCurrentPage(1); }}
+          className={`${styles.filterCard} ${filter === 'Nearly Out of Stock' ? styles.filterCardActive : ''}`}
+          onClick={() => { setFilter('Nearly Out of Stock'); setCurrentPage(1); }}
         >
           <div className={styles.cardTop}>
             <div className={styles.cardLabel}>
@@ -100,12 +125,12 @@ export default function PurchasingPartPage() {
             </div>
             <div className={`${styles.statusDot} ${styles.dotLowStock}`}></div>
           </div>
-          <span className={styles.cardValue}>{stats.out_of_stock}</span>
+          <span className={styles.cardValue}>{stats.outOfStock}</span>
         </div>
 
         <div 
-          className={`${styles.filterCard} ${filter === 'waiting' ? styles.filterCardActive : ''}`}
-          onClick={() => { setFilter('waiting'); setCurrentPage(1); }}
+          className={`${styles.filterCard} ${filter === 'Waiting for delivery' ? styles.filterCardActive : ''}`}
+          onClick={() => { setFilter('Waiting for delivery'); setCurrentPage(1); }}
         >
           <div className={styles.cardTop}>
             <div className={styles.cardLabel}>
@@ -138,40 +163,52 @@ export default function PurchasingPartPage() {
           <button className={styles.filterBtn}>Filter by Status</button>
         </div>
 
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <th>Part ID</th>
-              <th>Part Name</th>
-              <th className={styles.qtyCell}>Qty</th>
-              <th className={styles.statusCell}>Status</th>
-              <th className={styles.priceCell}>Price</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {paginatedData.map((part) => (
-              <tr key={part.id}>
-                <td className={styles.partId}>{part.id}</td>
-                <td className={styles.partName}>{part.name}</td>
-                <td className={styles.qtyCell}>{part.qty}</td>
-                <td className={styles.statusCell}>
-                  <span className={`${styles.tableStatusDot} ${
-                    part.status === 'inventory' ? styles.dotInventory : 
-                    part.status === 'out_of_stock' ? styles.dotLowStock : 
-                    styles.dotWaiting
-                  }`}></span>
-                </td>
-                <td className={styles.priceCell}>{part.price.toLocaleString()}</td>
-                <td className={styles.actionCell}>
-                  <Link href="/PurchasingStaff/Vendor">
-                    <button className={styles.orderBtn}>Order</button>
-                  </Link>
-                </td>
+        {loading ? (
+          <div style={{ padding: '2rem', textAlign: 'center' }}>Loading parts...</div>
+        ) : (
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th>Part ID</th>
+                <th>Part Name</th>
+                <th className={styles.qtyCell}>Qty</th>
+                <th className={styles.statusCell}>Status</th>
+                <th className={styles.priceCell}>Price</th>
+                <th></th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {paginatedData.length > 0 ? (
+                paginatedData.map((part) => (
+                  <tr key={part.part_id}>
+                    <td className={styles.partId}>{part.part_id}</td>
+                    <td className={styles.partName}>{part.part_name}</td>
+                    <td className={styles.qtyCell}>{part.stock_qty}</td>
+                    <td className={styles.statusCell}>
+                      <span className={`${styles.tableStatusDot} ${
+                        part.status === 'Inventory' ? styles.dotInventory : 
+                        part.status === 'Nearly Out of Stock' ? styles.dotLowStock : 
+                        styles.dotWaiting
+                      }`}></span>
+                    </td>
+                    <td className={styles.priceCell}>{part.price ? Number(part.price).toLocaleString() : '-'}</td>
+                    <td className={styles.actionCell}>
+                      <Link href="/PurchasingStaff/Vendor">
+                        <button className={styles.orderBtn}>Order</button>
+                      </Link>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={6} style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>
+                    No parts found
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        )}
 
         <div className={styles.tableFooter}>
           <span>Show {paginatedData.length} of {filteredData.length} parts</span>
@@ -183,7 +220,7 @@ export default function PurchasingPartPage() {
             >
               &lt;
             </button>
-            {[...Array(totalPages)].map((_, i) => (
+            {totalPages > 0 && [...Array(totalPages)].map((_, i) => (
               <button 
                 key={i} 
                 className={`${styles.pageBtn} ${currentPage === i + 1 ? styles.pageActive : ''}`}
@@ -193,9 +230,9 @@ export default function PurchasingPartPage() {
               </button>
             ))}
             <button 
-              className={`${styles.pageBtn} ${currentPage === totalPages ? styles.disabled : ''}`}
+              className={`${styles.pageBtn} ${currentPage === totalPages || totalPages === 0 ? styles.disabled : ''}`}
               onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
+              disabled={currentPage === totalPages || totalPages === 0}
             >
               &gt;
             </button>
