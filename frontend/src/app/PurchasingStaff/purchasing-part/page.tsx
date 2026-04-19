@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useMemo } from 'react'
+import Link from 'next/link'
 import styles from './PurchasingPart.module.css'
 
 interface Part {
@@ -163,7 +164,9 @@ export default function PurchasingPartPage() {
                 </td>
                 <td className={styles.priceCell}>{part.price.toLocaleString()}</td>
                 <td className={styles.actionCell}>
-                  <button className={styles.orderBtn}>Order</button>
+                  <Link href="/PurchasingStaff/Vendor">
+                    <button className={styles.orderBtn}>Order</button>
+                  </Link>
                 </td>
               </tr>
             ))}
