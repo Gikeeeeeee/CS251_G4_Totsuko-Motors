@@ -199,11 +199,11 @@ export default function TechnicianPage() {
     // ถ้ากำลังโหลด แสดง Loading
     if (loading) {
         return (
-            <div className="flex min-h-screen">
+            <div className="flex min-h-screen ">
                 <Sidebar />
                 <div className="flex-1 bg-[#F3FAFF]">
                     <TopNav />
-                    <main className="p-6">
+                    <main className="pt-24 px-[32px]">
                         <div className="flex items-center justify-center h-64">
                             <div className="text-center">
                                 <div className="text-lg text-gray-600">Loading...</div>
@@ -220,7 +220,7 @@ export default function TechnicianPage() {
             <Sidebar />
             <div className="flex-1 bg-[#F3FAFF]">
                 <TopNav />
-                <main className="flex flex-col p-[32px] gap-[32px]">
+                <main className="flex flex-col pt-24 px-[32px] gap-[32px]">
 
                     <p className='font-bold text-[32px] text-[#002446]'>Request & Checking</p>
 
