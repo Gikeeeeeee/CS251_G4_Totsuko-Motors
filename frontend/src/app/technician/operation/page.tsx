@@ -53,7 +53,7 @@ export default function OperatingPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold" style={{ color: '#1E3A8A' }}>Operating</h1>
+        <h1 className="text-[26px] font-bold" style={{ color: '#002446' }}>Operating</h1>
         <button
           onClick={() => setData((v) => (v ? null : MOCK))}
           className="px-4 py-1.5 rounded-md text-xs font-semibold transition-colors cursor-pointer"

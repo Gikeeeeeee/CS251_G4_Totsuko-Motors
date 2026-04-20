@@ -1,5 +1,5 @@
 import SidebarTech from '@/components/Sidebar'
-import TopNavTech from '@/components/TopNavTech'
+import TopNavTech from '@/components/TopNav'
 
 export default function OperationLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -7,7 +7,7 @@ export default function OperationLayout({ children }: { children: React.ReactNod
       <SidebarTech />
       <div style={{ flex: 1 }}>
         <TopNavTech />
-        <main style={{ padding: '96px 32px 48px', zoom: 1.25 }}>
+        <main style={{ padding: '32px 32px 48px', zoom: 1.25 }}>
           {children}
         </main>
       </div>

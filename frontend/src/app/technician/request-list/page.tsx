@@ -201,7 +201,7 @@ export default function TechnicianPage() {
         return (
             <div className="flex min-h-screen">
                 <Sidebar />
-                <div className="flex-1 bg-gray-50">
+                <div className="flex-1 bg-[#F3FAFF]">
                     <TopNav />
                     <main className="p-6">
                         <div className="flex items-center justify-center h-64">
@@ -218,7 +218,7 @@ export default function TechnicianPage() {
     return (
         <div className="flex">
             <Sidebar />
-            <div className="flex-1 bg-[F3FAFF]">
+            <div className="flex-1 bg-[#F3FAFF]">
                 <TopNav />
                 <main className="flex flex-col p-[32px] gap-[32px]">
 
