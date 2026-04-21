@@ -5,15 +5,15 @@ import { generateToken, generateRefreshToken } from '../utils/jwt';
 
 export const login = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { email, password } = req.body;
+    const { emailOrUsername, password } = req.body;
 
-    if (!email || !password) {
-      const error: any = new Error('กรุณากรอก email และ password');
+    if (!emailOrUsername || !password) {
+      const error: any = new Error('กรุณากรอก email/username และ password');
       error.statusCode = 400;
       return next(error);
     }
 
-    const user = await loginUser(email, password);
+    const user = await loginUser(emailOrUsername, password);
     const token = generateToken(user.userId);
     const refreshToken = generateRefreshToken(user.userId);
 
@@ -64,15 +64,23 @@ export const verify = async (req: AuthRequest, res: Response, next: NextFunction
 
 export const register = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { email, username, password, userId } = req.body;
+    const { email, username, password, role, name, phone, address, hireDate } = req.body;
 
-    if (!email || !username || !password || !userId) {
-      const error: any = new Error('กรุณากรอกข้อมูลให้ครบถ้วน');
+    if (!email || !username || !password || !role || !name) {
+      const error: any = new Error('กรุณากรอกข้อมูลให้ครบถ้วน (email, username, password, role, name)');
       error.statusCode = 400;
       return next(error);
     }
 
-    const user = await registerUser(email, username, password, userId);
+    // ตรวจสอบว่า role ถูกต้องหรือไม่
+    const validRoles = ['technician', 'clerk', 'purchasingStaff'];
+    if (!validRoles.includes(role)) {
+      const error: any = new Error('Role ไม่ถูกต้อง กรุณาเลือก technician, clerk หรือ purchasingStaff');
+      error.statusCode = 400;
+      return next(error);
+    }
+
+    const user = await registerUser(email, username, password, role, name, phone, address, hireDate);
     const token = generateToken(user.userId);
     const refreshToken = generateRefreshToken(user.userId);
 
