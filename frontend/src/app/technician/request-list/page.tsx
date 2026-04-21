@@ -220,7 +220,7 @@ export default function TechnicianPage() {
             <Sidebar />
             <div className="flex-1 bg-[#F3FAFF]">
                 <TopNav />
-                <main className="flex flex-col pt-24 px-[32px] gap-[32px]">
+                <main className="flex flex-col pt-24 pb-[32px] pl-[288px] pr-[32px] gap-[32px]">
 
                     <p className='font-bold text-[32px] text-[#002446]'>Request & Checking</p>
 
