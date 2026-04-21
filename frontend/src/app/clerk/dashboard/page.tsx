@@ -18,24 +18,27 @@ export default function ClerkDashboard() {
   useEffect(() => {
     const fetchServices = async () => {
       try {
-        const response = await apiClient.get('/service/service-request');
-        if (response.data && response.data.data && response.data.data.length > 0 || response.data.success == true) {
-          const mappedData = response.data.data.map((item: any) => ({
+        const response = await apiClient.get('/service/service-request?limit=1000');
+        if (response.data && (response.data.data || response.data.success)) {
+          const mappedData = (response.data.data || []).map((item: any) => ({
             plate: item.plateNumber,
             id: item.requestId,
             customer: item.customerName,
             car: `${item.vehicleMake || ""} ${item.vehicleModel || ""} ${item.vehicleColor || ""}`.trim() || "-",
             problem: item.problemDescription || "-",
             status: item.requestStatus ? item.requestStatus.toUpperCase() : "PENDING",
-            time: item.checkingDate ? new Date(item.checkingDate).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : "-"
+            time: item.requestStatus?.toUpperCase() === 'CANCELED'
+              ? "-----"
+              : item.requestStatus?.toUpperCase() === 'COMPLETED'
+                ? "READY"
+                : item.checkingDate
+                  ? new Date(item.checkingDate).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })
+                  : "-"
           }));
           setRecentServices(mappedData);
-        } else {
-          setRecentServices([]);
         }
       } catch (error) {
         console.error("Error fetching services:", error);
-        setRecentServices([]);
       }
     };
     fetchServices();
@@ -91,20 +94,19 @@ export default function ClerkDashboard() {
       <SidebarClerk />
       <TopNavClerk />
 
-      <main className="ml-[256px] pt-[64px] p-8">
-        <div className="max-w-7xl mx-auto space-y-8">
-          <div className="flex justify-between items-end">
+      <main className="ml-[256px] pt-[100px] px-16 py-8">
+        <div className="max-w-[1440px] mx-auto space-y-12">
+          <div className="flex justify-between items-end mb-10">
             <div>
-              <h1 className="text-2xl font-[800] uppercase tracking-tight text-[#002446] mb-1">Dashboard</h1>
-              <p className="text-sm text-[#64748B]">Overview & Recent Services</p>
+              <h1 className="text-3xl font-[800] tracking-tight text-[#002446]">Service Overview</h1>
             </div>
           </div>
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-4 gap-8 mb-12">
           {/* Card 1 */}
-          <div className="bg-white p-6 rounded-xl shadow-[0_1px_3px_rgba(0,0,0,0.05)] border border-gray-100 flex flex-col justify-between h-32">
+          <div className="bg-white p-10 rounded-xl shadow-[0_1px_3px_rgba(0,0,0,0.05)] border border-gray-100 flex flex-col justify-between h-44">
             <div className="flex items-start">
               <div className="w-10 h-10 rounded-lg bg-[#E0F2FE] text-[#0284C7] flex items-center justify-center">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -121,7 +123,7 @@ export default function ClerkDashboard() {
           </div>
 
           {/* Card 2 */}
-          <div className="bg-white p-6 rounded-xl shadow-[0_1px_3px_rgba(0,0,0,0.05)] border border-gray-100 flex flex-col justify-between h-32">
+          <div className="bg-white p-10 rounded-xl shadow-[0_1px_3px_rgba(0,0,0,0.05)] border border-gray-100 flex flex-col justify-between h-44">
             <div className="flex items-start">
               <div className="w-10 h-10 rounded-lg bg-[#FEE2E2] text-[#B91C1C] flex items-center justify-center">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -138,7 +140,7 @@ export default function ClerkDashboard() {
           </div>
 
           {/* Card 3 */}
-          <div className="bg-white p-6 rounded-xl shadow-[0_1px_3px_rgba(0,0,0,0.05)] border border-gray-100 flex flex-col justify-between h-32">
+          <div className="bg-white p-10 rounded-xl shadow-[0_1px_3px_rgba(0,0,0,0.05)] border border-gray-100 flex flex-col justify-between h-44">
             <div className="flex items-start">
               <div className="w-10 h-10 rounded-lg bg-[#E0F2FE] text-[#0284C7] flex items-center justify-center">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -154,7 +156,7 @@ export default function ClerkDashboard() {
           </div>
 
           {/* Card 4 */}
-          <div className="bg-[#1e293b] p-6 rounded-xl shadow-[0_4px_6px_-1px_rgba(0,0,0,0.1),0_2px_4px_-1px_rgba(0,0,0,0.06)] flex flex-col justify-between h-32">
+          <div className="bg-[#1e293b] p-10 rounded-xl shadow-[0_4px_6px_-1px_rgba(0,0,0,0.1),0_2px_4px_-1px_rgba(0,0,0,0.06)] flex flex-col justify-between h-44">
             <div className="flex items-start">
               <div className="w-10 h-10 rounded-full border border-white/20 bg-transparent flex items-center justify-center text-white">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
