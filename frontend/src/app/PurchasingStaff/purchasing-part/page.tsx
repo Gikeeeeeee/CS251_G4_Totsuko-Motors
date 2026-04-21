@@ -35,12 +35,17 @@ export default function PurchasingPartPage() {
         const response = await apiClient.get('/parts/purchasing');
         if (response.data && response.data.data) {
           const allParts: Part[] = response.data.data;
-          setStats({
-            all: allParts.length,
-            inventory: allParts.filter(p => p.status === 'Inventory').length,
-            outOfStock: allParts.filter(p => p.status === 'Nearly Out of Stock').length,
-            waiting: allParts.filter(p => p.status === 'Waiting for delivery').length,
-          });
+          
+          const newStats = allParts.reduce((acc, p) => {
+            const qty = Number(p.stock_qty) || 0;
+            acc.all += qty;
+            if (p.status === 'Inventory') acc.inventory += qty;
+            if (p.status === 'Nearly Out of Stock') acc.outOfStock += qty;
+            if (p.status === 'Waiting for delivery') acc.waiting += qty;
+            return acc;
+          }, { all: 0, inventory: 0, outOfStock: 0, waiting: 0 });
+
+          setStats(newStats);
         }
       } catch (error) {
         console.error('Failed to fetch stats:', error);
