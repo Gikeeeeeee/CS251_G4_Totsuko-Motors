@@ -5,32 +5,31 @@
 
 .main {
   margin-left: 256px;
-  padding: 32px;
-  padding-top: 64px;
+  padding: 48px;
+  padding-top: 100px;
 }
 
 .content {
-  max-width: 80rem;
+  max-width: 1440px;
   margin-left: auto;
   margin-right: auto;
-  margin-bottom: 2rem;
+  margin-bottom: 2.5rem;
 }
 
 .header {
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
-  margin-bottom: 1.5rem;
+  margin-bottom: 2.5rem;
 }
 
 .title {
-  font-size: 1.5rem;
-  line-height: 2rem;
+  font-size: 2rem;
+  line-height: 2.5rem;
   font-weight: 800;
-  text-transform: uppercase;
   letter-spacing: -0.025em;
   color: #002446;
-  margin-bottom: 0.25rem;
+  margin-bottom: 1rem;
 }
 
 .backLink {
@@ -46,11 +45,11 @@
 
 .infoCard {
   background-color: #ffffff;
-  padding: 1.5rem;
+  padding: 2.5rem;
   border-radius: 0.75rem;
   border: 1px solid #f3f4f6;
   box-shadow: 0 10px 30px rgba(7,30,39,0.05);
-  margin-bottom: 2rem;
+  margin-bottom: 2.5rem;
   display: flex;
   flex-direction: column;
   gap: 3rem; /* lg:gap-12 */
