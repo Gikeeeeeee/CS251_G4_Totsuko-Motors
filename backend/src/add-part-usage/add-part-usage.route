@@ -1,0 +1,8 @@
+import { Router } from 'express'
+import { createUsePart } from './add-part-usage.controller'
+
+const router = Router()
+
+router.post('/', createUsePart)
+
+export default router
