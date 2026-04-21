@@ -1,7 +1,7 @@
 import { Response, NextFunction } from 'express';
-import { AuthRequest } from '../middlewares/auth.middleware';
-import { loginUser, registerUser, refreshAccessToken } from '../services/auth.service';
-import { generateToken, generateRefreshToken } from '../utils/jwt';
+import { AuthRequest } from '../../middlewares/auth.middleware';
+import { loginUser, registerUser, refreshAccessToken } from '../../services/auth/auth.service';
+import { generateToken, generateRefreshToken } from '../../utils/jwt';
 
 export const login = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {

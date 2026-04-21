@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { getPurchasingParts } from './service';
+import { getPurchasingParts } from '../../services/parts/purchasing-parts.service';
 
 export async function getPurchasingPartsController(req: Request, res: Response) {
   try {

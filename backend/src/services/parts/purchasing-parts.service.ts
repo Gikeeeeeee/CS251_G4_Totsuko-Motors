@@ -1,7 +1,7 @@
 import {
   findPurchasingParts,
   PurchasingPartStatus,
-} from './repo';
+} from '../../repo/parts/purchasing-parts.repo';
 
 const allowedStatuses: PurchasingPartStatus[] = [
   'Inventory',
