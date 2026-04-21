@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/static-components */
 'use client';
 import React, { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
@@ -22,6 +23,25 @@ type MockData = {
   serviceJobs: string[];
   otherServices: string[];
   invoiceItems: { partName: string; stockQty: number; qtyUsed: number; price: number }[];
+};
+
+type OtherService = {
+  id: number;
+  dateStart: string;
+  dateEnd: string;
+  status: 'In Progress' | 'Done' | 'Pending';
+  services: string[];
+  technicians: { id: string; name: string }[];
+};
+
+type ServiceJob = {
+  id: number;
+  detail: string;
+  timeStart: string;
+  timeEnd: string;
+  status: 'In Progress' | 'Done' | 'Pending';
+  parts: { name: string; qty: number }[];
+  technicians: { id: string; name: string }[];
 };
 
 const MOCK: MockData = {
@@ -376,16 +396,6 @@ function AppointmentCard({ data }: { data: MockData }) {
 }
 
 // ─── Service Job ──────────────────────────────────────────────────────────────
-
-type ServiceJob = {
-  id: number;
-  detail: string;
-  timeStart: string;
-  timeEnd: string;
-  status: 'In Progress' | 'Done' | 'Pending';
-  parts: { name: string; qty: number }[];
-  technicians: { id: string; name: string }[];
-};
 
 const MOCK_PARTS = [
   { name: 'แบตเตอรี่ 12V',          price: 2500,   stockQty: 10 },
@@ -804,14 +814,7 @@ function ServiceJobCard({ job, onChange, onDelete }: { job: ServiceJob; onChange
 
 // ─── Other Service ────────────────────────────────────────────────────────────
 
-type OtherService = {
-  id: number;
-  dateStart: string;
-  dateEnd: string;
-  status: 'In Progress' | 'Done' | 'Pending';
-  services: string[];
-  technicians: { id: string; name: string }[];
-};
+
 
 function OtherServiceSection({ items, setItems }: { items: OtherService[]; setItems: React.Dispatch<React.SetStateAction<OtherService[]>> }) {
 
