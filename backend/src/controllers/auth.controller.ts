@@ -2,6 +2,9 @@ import { Response, NextFunction } from 'express';
 import { AuthRequest } from '../middlewares/auth.middleware';
 import { loginUser, registerUser, refreshAccessToken } from '../services/auth.service';
 import { generateToken, generateRefreshToken } from '../utils/jwt';
+import { db } from '../db';
+import { userAccount } from '../db/schema';
+import { eq } from 'drizzle-orm';
 
 export const login = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
@@ -52,10 +55,26 @@ export const logout = (req: AuthRequest, res: Response, next: NextFunction) => {
 
 export const verify = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
+    // ดึงข้อมูล user จาก database
+    const user = await db.select({
+      userId: userAccount.userId,
+      employeeId: userAccount.employeeId,
+      name: userAccount.name,
+      email: userAccount.email,
+      username: userAccount.username,
+      role: userAccount.role,
+    }).from(userAccount).where(eq(userAccount.userId, req.userId!)).limit(1);
+
+    if (user.length === 0) {
+      const error: any = new Error('ไม่พบผู้ใช้งาน');
+      error.statusCode = 404;
+      return next(error);
+    }
+
     res.json({
       success: true,
       message: 'Token ถูกต้อง',
-      userId: req.userId,
+      user: user[0],
     });
   } catch (error) {
     next(error);
