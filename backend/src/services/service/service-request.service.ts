@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto';
-import { createServiceRecord } from './repo';
+import { createServiceRecord } from '../../repo/service/service-request.repo';
 
 export type CreateServiceBody = {
   vehicle_type?: string;

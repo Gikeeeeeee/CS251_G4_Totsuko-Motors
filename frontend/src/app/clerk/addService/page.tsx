@@ -4,6 +4,7 @@ import { useState } from 'react'
 import SidebarClerk from '@/components/SidebarClerk'
 import TopNavClerk from '@/components/TopNavClerk'
 import styles from './page.module.css'
+import { createService } from '@/services/addServiceApi'
 
 export default function AddServicePage() {
   const [formData, setFormData] = useState({
@@ -25,6 +26,7 @@ export default function AddServicePage() {
   const [errors, setErrors] = useState<{[key: string]: string}>({})
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [serviceId, setServiceId] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const validateForm = () => {
     const newErrors: {[key: string]: string} = {}
@@ -109,16 +111,46 @@ export default function AddServicePage() {
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     
-    if (validateForm()) {
-      // Generate service ID
-      const newServiceId = 'SV' + Math.random().toString(36).substring(2, 11).toUpperCase()
-      setServiceId(newServiceId)
+    if (!validateForm()) {
+      return
+    }
+
+    setIsSubmitting(true)
+
+    try {
+      // แปลง field names จาก camelCase (Frontend) เป็น snake_case (Backend)
+      const requestData = {
+        name: formData.customerName,
+        phone: formData.phoneNumber,
+        email: formData.email,
+        plate_number: formData.vehiclePlate,
+        brand: formData.brand,
+        model: formData.model,
+        year: parseInt(formData.year),
+        vehicle_type: formData.vehicleType,
+        color: formData.color,
+        odometer: parseInt(formData.mileage.replace(/,/g, '')), // ลบ comma ออกก่อนแปลงเป็น number
+        problem_description: formData.problemDescription,
+      }
+
+      const response = await createService(requestData)
       
-      console.log('Form submitted:', formData)
+      // ใช้ requestId จาก response แทนการ generate เอง
+      setServiceId(response.data.serviceRequest.requestId)
       setShowSuccessModal(true)
+      
+      console.log('Service created successfully:', response.data)
+    } catch (error: any) {
+      console.error('Failed to create service:', error)
+      
+      // แสดง error message จาก API
+      const errorMessage = error.response?.data?.message || 'เกิดข้อผิดพลาดในการสร้าง service กรุณาลองใหม่อีกครั้ง'
+      alert(errorMessage)
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -370,11 +402,11 @@ export default function AddServicePage() {
               </div>
 
               <div className={styles.formActions}>
-                <button type="button" className={styles.clearBtn} onClick={handleClear}>
+                <button type="button" className={styles.clearBtn} onClick={handleClear} disabled={isSubmitting}>
                   Clear Form
                 </button>
-                <button type="submit" className={styles.submitBtn}>
-                  Submit
+                <button type="submit" className={styles.submitBtn} disabled={isSubmitting}>
+                  {isSubmitting ? 'Submitting...' : 'Submit'}
                 </button>
               </div>
             </form>

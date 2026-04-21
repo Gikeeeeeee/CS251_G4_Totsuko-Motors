@@ -2,7 +2,7 @@ import axios from 'axios';
 
 const apiClient = axios.create({
   // ชี้ไปที่ Backend ที่รันอยู่ (พอร์ต 3000 ที่เราตั้งไว้)
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api',
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/',
   headers: {
     'Content-Type': 'application/json',
   },
