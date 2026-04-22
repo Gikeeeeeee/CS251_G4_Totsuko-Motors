@@ -23,8 +23,9 @@ export const userAccount = pgTable('UserAccount', {
 export const employee = pgTable('Employee', {
   employeeId: varchar('employee_id', { length: 10 }).primaryKey(),
   name: varchar('name', { length: 100 }).notNull(),
-  phone: varchar('phone', { length: 20 }),
+  email: varchar('email', { length: 100 }),
   hireDate: date('hire_date'),
+  jobRole: varchar('job_role', { length: 30 }),
   userId: varchar('user_id', { length: 10 })
     .unique()
     .references(() => userAccount.userId),

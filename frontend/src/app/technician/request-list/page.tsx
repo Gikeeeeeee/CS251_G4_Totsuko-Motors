@@ -191,10 +191,7 @@ export default function TechnicianPage() {
                                                     {request.customerName}
                                                 </div>
                                                 <div className="text-xs text-gray-500">
-                                                    { `-`  /* request.vehicleModel */ }
-                                                </div>
-                                                <div className="text-xs text-gray-500">
-                                                    { `-`  /* request.vehicleColor */ }
+                                                    Clerk: {request.clerkName}
                                                 </div>
                                             </td>
 
