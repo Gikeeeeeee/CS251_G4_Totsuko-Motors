@@ -9,6 +9,7 @@ import {
   timestamp,
   varchar,
 } from 'drizzle-orm/pg-core';
+import { relations } from 'drizzle-orm';
 
 export const userAccount = pgTable('UserAccount', {
   userId: varchar('user_id', { length: 10 }).primaryKey(),
@@ -182,3 +183,32 @@ export const assignTo = pgTable(
     pk: primaryKey({ columns: [table.serviceId, table.technicianId] }),
   }),
 );
+
+export const serviceRequestRelations = relations(serviceRequest, ({ one, many }) => ({
+  customer: one(customer, {
+    fields: [serviceRequest.customerId],
+    references: [customer.customerId],
+  }),
+  vehicle: one(vehicle, {
+    fields: [serviceRequest.vehicleId],
+    references: [vehicle.vehicleId],
+  }),
+  clerk: one(clerk, {
+    fields: [serviceRequest.clerkId],
+    references: [clerk.employeeId],
+  }),
+  appointments: many(appointment),
+  serviceJobs: many(serviceJob),
+}));
+
+export const customerRelations = relations(customer, ({ many }) => ({
+  vehicles: many(vehicle),
+  requests: many(serviceRequest),
+}));
+
+export const vehicleRelations = relations(vehicle, ({ one }) => ({
+  owner: one(customer, {
+    fields: [vehicle.customerId],
+    references: [customer.customerId],
+  }),
+}));
