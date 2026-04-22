@@ -1,7 +1,19 @@
 'use client';
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import CarImage from '@/public/car.png';
+import apiClient from '@/services/apiClient';
+
+// ─── Types ──────────────────────────────────────────────────────────────────
+
+type ApiPart = {
+  part_id: string;
+  part_name: string;
+  stock_qty: number;
+  price: string | null;
+  status: string;
+};
 
 type MockData = {
   plate: string;
@@ -45,25 +57,84 @@ const MOCK: MockData = {
   invoiceItems: [],
 };
 
-export default function OperatingPage() {
+// ─── Service Job type (serverId = undefined means draft, not yet saved) ──────
+
+type ServiceJob = {
+  id: number;
+  serverId?: string;
+  isDirty: boolean;
+  detail: string;
+  timeStart: string;
+  timeEnd: string;
+  status: 'In Progress' | 'Done' | 'Pending';
+  parts: { part_id: string; name: string; qty: number }[];
+  technicians: { id: string; name: string }[];
+};
+
+const MOCK_SERVICES = [
+  { name: 'ล้างรถ',              price: 300  },
+  { name: 'เคลือบสี',            price: 2500 },
+  { name: 'ดูดฝุ่นภายใน',        price: 200  },
+  { name: 'เปลี่ยนน้ำมันเกียร์', price: 800  },
+  { name: 'ตรวจเช็คระบบเบรก',   price: 500  },
+];
+
+const MOCK_TECHNICIANS = [
+  { id: '6709616764', name: 'พีรภัทร เอกดิษฐ์', role: 'ช่างซ่อมเครื่องยนต์' },
+  { id: '6701234567', name: 'ธีธัช ปูอัด', role: 'ช่างไฟฟ้ารถยนต์' },
+  { id: '6708901234', name: 'บริวัฒน์ สงนุ้ย', role: 'ช่างระบบเบรกและช่วงล่าง' },
+  { id: '6705678901', name: 'ธัชกฤต สตารัตน์', role: 'ช่างเคาะพ่นสี' },
+  { id: '6702345678', name: 'ภาณุพงศ์ สุขติเกษม', role: 'ช่างระบบเกียร์' },
+];
+
+// ─── Page wrapper (Suspense required for useSearchParams in App Router) ──────
+
+export default function OperatingPageWrapper() {
+  return (
+    <Suspense fallback={<div className="p-6 text-slate-400 text-sm">Loading...</div>}>
+      <OperatingPage />
+    </Suspense>
+  );
+}
+
+function OperatingPage() {
+  const searchParams = useSearchParams();
+  const requestId = searchParams.get('requestId') ?? undefined;
+
   const [data, setData] = useState<MockData | null>(null);
   const [jobs, setJobs] = useState<ServiceJob[]>([]);
   const [otherItems, setOtherItems] = useState<OtherService[]>([]);
+  const [apiParts, setApiParts] = useState<ApiPart[]>([]);
+
+  // GET /api/parts/purchasing — load once on mount
+  useEffect(() => {
+    apiClient
+      .get<{ data: ApiPart[] }>('/parts/purchasing')
+      .then((res) => setApiParts(res.data.data ?? []))
+      .catch(() => {});
+  }, []);
 
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold" style={{ color: '#1E3A8A' }}>Operating</h1>
-        <button
-          onClick={() => setData((v) => (v ? null : MOCK))}
-          className="px-4 py-1.5 rounded-md text-xs font-semibold transition-colors cursor-pointer"
-          style={{
-            backgroundColor: data ? '#1E3A8A' : '#E2E8F0',
-            color: data ? 'white' : '#64748B',
-          }}
-        >
-          {data ? 'Mock ON' : 'Mock OFF'}
-        </button>
+        <div className="flex items-center gap-3">
+          {requestId && (
+            <span className="text-xs font-mono text-slate-400 bg-slate-100 px-2 py-1 rounded-md">
+              Request: {requestId}
+            </span>
+          )}
+          <button
+            onClick={() => setData((v) => (v ? null : MOCK))}
+            className="px-4 py-1.5 rounded-md text-xs font-semibold transition-colors cursor-pointer"
+            style={{
+              backgroundColor: data ? '#1E3A8A' : '#E2E8F0',
+              color: data ? 'white' : '#64748B',
+            }}
+          >
+            {data ? 'Mock ON' : 'Mock OFF'}
+          </button>
+        </div>
       </div>
 
       {data === null ? (
@@ -76,20 +147,14 @@ export default function OperatingPage() {
       ) : (
         <div className="space-y-4">
           <div className="flex gap-4">
-
-            {/* แผ่น 1: ป้ายทะเบียน */}
             <div className="bg-white rounded-xl border border-slate-200 flex flex-col items-center justify-center px-6 py-2 min-w-90">
               <div className="text-4xl font-bold text-slate-800">{data.plate}</div>
               <div className="text-xl text-slate-800 mt-1">{data.province}</div>
             </div>
-
-            {/* แผ่น 2: รูปรถ */}
-            <div className="bg-white rounded-xl  flex items-center justify-center px-6 py-4 flex-1"
+            <div className="bg-white rounded-xl flex items-center justify-center px-6 py-4 flex-1"
               style={{ backgroundColor: 'transparent' }}>
               <Image src={CarImage} alt="car" height={100} style={{ height: '100px', width: 'auto' }} />
             </div>
-
-            {/* แผ่น 3: ข้อมูลลูกค้า */}
             <div className="bg-white rounded-xl border border-slate-200 px-5 py-4 w-120 shrink-0">
               <div className="font-semibold text-slate-800 mb-1">{data.customerName}</div>
               <div className="text-[10px] uppercase tracking-widest text-slate-400 mb-1">Vehicle Details</div>
@@ -98,40 +163,44 @@ export default function OperatingPage() {
               </div>
               <div className="border-t border-slate-100 pt-3 text-xs text-slate-500">{data.note}</div>
             </div>
-
           </div>
 
-          {/* Service Job & Other Service */}
           <div className="mt-4 bg-white rounded-xl border border-slate-200 p-5">
-
-            {/* Service Job */}
-            <ServiceJobSection jobs={jobs} setJobs={setJobs} />
-
-            {/* Other Service */}
+            <ServiceJobSection
+              jobs={jobs}
+              setJobs={setJobs}
+              requestId={requestId}
+              apiParts={apiParts}
+            />
             <OtherServiceSection items={otherItems} setItems={setOtherItems} />
-
           </div>
 
-          {/* Appointment Card */}
           <AppointmentCard data={data} />
-
-          {/* Invoice Card */}
-          <InvoiceCard data={data} jobs={jobs} otherItems={otherItems} />
-
+          <InvoiceCard data={data} jobs={jobs} otherItems={otherItems} apiParts={apiParts} />
         </div>
       )}
     </div>
   );
 }
 
-function InvoiceCard({ jobs, otherItems }: { data: MockData; jobs: ServiceJob[]; otherItems: OtherService[] }) {
-  // Aggregate parts across all service jobs
+// ─── Invoice ─────────────────────────────────────────────────────────────────
+
+function InvoiceCard({
+  jobs,
+  otherItems,
+  apiParts,
+}: {
+  data: MockData;
+  jobs: ServiceJob[];
+  otherItems: OtherService[];
+  apiParts: ApiPart[];
+}) {
   const partsMap = new Map<string, { qty: number; price: number; stockQty: number }>();
   for (const job of jobs) {
     for (const p of job.parts) {
-      const mock = MOCK_PARTS.find(m => m.name === p.name);
-      const price = mock?.price ?? 0;
-      const stockQty = mock?.stockQty ?? 0;
+      const apiPart = apiParts.find((m) => m.part_id === p.part_id);
+      const price = apiPart?.price ? parseFloat(apiPart.price) : 0;
+      const stockQty = apiPart?.stock_qty ?? 0;
       const existing = partsMap.get(p.name);
       if (existing) existing.qty += p.qty;
       else partsMap.set(p.name, { qty: p.qty, price, stockQty });
@@ -139,21 +208,19 @@ function InvoiceCard({ jobs, otherItems }: { data: MockData; jobs: ServiceJob[];
   }
   const partRows = Array.from(partsMap.entries()).map(([name, v]) => ({ name, ...v }));
 
-  // Aggregate other services (deduplicate same service name, sum prices)
   const serviceMap = new Map<string, number>();
   for (const item of otherItems) {
     for (const svcName of item.services) {
-      const mock = MOCK_SERVICES.find(m => m.name === svcName);
+      const mock = MOCK_SERVICES.find((m) => m.name === svcName);
       const price = mock?.price ?? 0;
       serviceMap.set(svcName, (serviceMap.get(svcName) ?? 0) + price);
     }
   }
   const serviceRows = Array.from(serviceMap.entries()).map(([name, price]) => ({ name, price }));
 
-  // Labor: unique technicians across ALL job types × 400
   const allTechIds = new Set<string>();
-  for (const job of jobs) job.technicians.forEach(t => allTechIds.add(t.id));
-  for (const item of otherItems) item.technicians.forEach(t => allTechIds.add(t.id));
+  for (const job of jobs) job.technicians.forEach((t) => allTechIds.add(t.id));
+  for (const item of otherItems) item.technicians.forEach((t) => allTechIds.add(t.id));
   const techCount = allTechIds.size;
   const laborCost = techCount * 400;
 
@@ -169,14 +236,12 @@ function InvoiceCard({ jobs, otherItems }: { data: MockData; jobs: ServiceJob[];
     <div className="bg-white rounded-xl border border-slate-200 p-5">
       <div className="font-bold text-slate-800 text-base mb-3">Invoice</div>
       <div className="rounded-xl overflow-hidden border border-blue-100">
-        {/* Header */}
         <div className="grid grid-cols-[2fr_1fr_1fr_1fr] px-5 py-2 text-[10px] uppercase tracking-widest text-slate-600 font-semibold" style={{ backgroundColor: '#AFDCF7' }}>
           <span>Part Name</span>
           <span className="text-center">Stock Qty</span>
           <span className="text-center">Qty used</span>
           <span className="text-right">Price</span>
         </div>
-        {/* Part rows */}
         {partRows.length === 0 ? (
           <div className="grid grid-cols-[2fr_1fr_1fr_1fr] px-5 py-3 text-sm text-slate-400" style={{ backgroundColor: '#E1F4FF' }}>
             <span /><span /><span /><span className="text-right">-</span>
@@ -191,7 +256,6 @@ function InvoiceCard({ jobs, otherItems }: { data: MockData; jobs: ServiceJob[];
             </div>
           ))
         )}
-        {/* Other service rows */}
         {serviceRows.map((r, i) => (
           <div key={i} className="grid grid-cols-[2fr_1fr_1fr_1fr] px-5 py-1.5 text-sm text-slate-700" style={{ backgroundColor: '#D9EDF8' }}>
             <span>• {r.name}</span>
@@ -199,7 +263,6 @@ function InvoiceCard({ jobs, otherItems }: { data: MockData; jobs: ServiceJob[];
             <span className="text-right">{fmt(r.price)}</span>
           </div>
         ))}
-        {/* Summary rows */}
         <div className="px-5 pt-2 pb-3 bg-white border-t border-blue-100 space-y-0.5">
           <div className="grid grid-cols-[2fr_1fr_1fr_1fr] text-sm text-slate-700">
             <span>ค่าแรงรวม {techCount > 0 && <span className="text-slate-400 text-xs">(จำนวน {techCount} คน × 400)</span>}</span>
@@ -221,6 +284,8 @@ function InvoiceCard({ jobs, otherItems }: { data: MockData; jobs: ServiceJob[];
     </div>
   );
 }
+
+// ─── DatePicker ───────────────────────────────────────────────────────────────
 
 function DatePicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const [open, setOpen] = useState(false);
@@ -291,6 +356,8 @@ function DatePicker({ value, onChange }: { value: string; onChange: (v: string) 
   );
 }
 
+// ─── Appointment ─────────────────────────────────────────────────────────────
+
 function AppointmentCard({ data }: { data: MockData }) {
   const [isEditing, setIsEditing] = useState(false);
   const [appt, setAppt] = useState(data.appointment);
@@ -337,12 +404,11 @@ function AppointmentCard({ data }: { data: MockData }) {
       </div>
 
       <div className="rounded-xl border border-slate-100 p-4 space-y-4" style={{ backgroundColor: '#F8FAFC' }}>
-        {/* Row 1 */}
         <div className="grid grid-cols-[1fr_0.8fr_0.8fr_2fr] gap-4 items-start">
           <Field label="Name" value={data.customerName} />
           <Field label="Model" value={data.vehicleModel} />
           <Field label="Color" value={data.vehicleColor} />
-          <div className="w-full"> {/* นำ ml-auto ออกเพื่อให้ขยายเต็มพื้นที่ใหม่ */}
+          <div className="w-full">
             <div className="text-[10px] uppercase tracking-widest text-slate-400 mb-1">Appointment</div>
             <div className="flex items-center gap-2 flex-wrap text-sm text-slate-700">
               <span>เข้ารับตรวจ :</span>
@@ -353,7 +419,6 @@ function AppointmentCard({ data }: { data: MockData }) {
           </div>
         </div>
 
-        {/* Row 2 */}
         <div className="grid grid-cols-[1fr_0.8fr_0.8fr_2fr] gap-4 items-start">
           <Field label="Plate Name" value={`${data.plate} ${data.province}`} />
           <Field label="Vehicle Name" value={data.vehicleBrand} />
@@ -375,41 +440,7 @@ function AppointmentCard({ data }: { data: MockData }) {
   );
 }
 
-// ─── Service Job ──────────────────────────────────────────────────────────────
-
-type ServiceJob = {
-  id: number;
-  detail: string;
-  timeStart: string;
-  timeEnd: string;
-  status: 'In Progress' | 'Done' | 'Pending';
-  parts: { name: string; qty: number }[];
-  technicians: { id: string; name: string }[];
-};
-
-const MOCK_PARTS = [
-  { name: 'แบตเตอรี่ 12V',          price: 2500,   stockQty: 10 },
-  { name: 'น้ำมันเครื่อง 5W-30',     price: 450,    stockQty: 50 },
-  { name: 'ไส้กรองอากาศ',            price: 180,    stockQty: 20 },
-  { name: 'หัวเทียน NGK',            price: 120,    stockQty: 100 },
-  { name: 'ยางรถยนต์ 195/65 R15',    price: 3200,   stockQty: 8  },
-];
-
-const MOCK_SERVICES = [
-  { name: 'ล้างรถ',              price: 300  },
-  { name: 'เคลือบสี',            price: 2500 },
-  { name: 'ดูดฝุ่นภายใน',        price: 200  },
-  { name: 'เปลี่ยนน้ำมันเกียร์', price: 800  },
-  { name: 'ตรวจเช็คระบบเบรก',   price: 500  },
-];
-
-const MOCK_TECHNICIANS = [
-  { id: '6709616764', name: 'พีรภัทร เอกดิษฐ์', role: 'ช่างซ่อมเครื่องยนต์' },
-  { id: '6701234567', name: 'ธีธัช ปูอัด', role: 'ช่างไฟฟ้ารถยนต์' },
-  { id: '6708901234', name: 'บริวัฒน์ สงนุ้ย', role: 'ช่างระบบเบรกและช่วงล่าง' },
-  { id: '6705678901', name: 'ธัชกฤต สตารัตน์', role: 'ช่างเคาะพ่นสี' },
-  { id: '6702345678', name: 'ภาณุพงศ์ สุขติเกษม', role: 'ช่างระบบเกียร์' },
-];
+// ─── Technician Picker ────────────────────────────────────────────────────────
 
 function TechnicianPickerModal({ onAdd, onClose, assignedIds = [] }: { onAdd: (tech: { id: string; name: string }) => void; onClose: () => void; assignedIds?: string[] }) {
   const [search, setSearch] = useState('');
@@ -453,19 +484,19 @@ function TechnicianPickerModal({ onAdd, onClose, assignedIds = [] }: { onAdd: (t
           {filtered.map(t => {
             const isAssigned = assignedIds.includes(t.id);
             return (
-            <button
-              key={t.id}
-              onClick={() => !isAssigned && setSelected(t.id)}
-              disabled={isAssigned}
-              className={`w-full text-left px-4 py-3 transition-colors ${isAssigned ? 'cursor-not-allowed' : 'cursor-pointer'} ${isAssigned ? '' : selected === t.id ? '' : 'hover:bg-slate-50'}`}
-              style={isAssigned ? { backgroundColor: '#F1F5F9' } : selected === t.id ? { backgroundColor: '#E6F6FF' } : {}}
-            >
-              <div className="flex items-center justify-between">
-                <span className={`text-sm font-semibold ${isAssigned ? 'text-slate-300' : selected === t.id ? 'text-blue-800' : 'text-slate-800'}`}>{t.name}</span>
-                <span className={`text-xs ${isAssigned ? 'text-slate-300' : 'text-slate-400'}`}>{t.id}</span>
-              </div>
-              <div className="text-xs text-slate-500 mt-0.5">{t.role}</div>
-            </button>
+              <button
+                key={t.id}
+                onClick={() => !isAssigned && setSelected(t.id)}
+                disabled={isAssigned}
+                className={`w-full text-left px-4 py-3 transition-colors ${isAssigned ? 'cursor-not-allowed' : 'cursor-pointer'} ${isAssigned ? '' : selected === t.id ? '' : 'hover:bg-slate-50'}`}
+                style={isAssigned ? { backgroundColor: '#F1F5F9' } : selected === t.id ? { backgroundColor: '#E6F6FF' } : {}}
+              >
+                <div className="flex items-center justify-between">
+                  <span className={`text-sm font-semibold ${isAssigned ? 'text-slate-300' : selected === t.id ? 'text-blue-800' : 'text-slate-800'}`}>{t.name}</span>
+                  <span className={`text-xs ${isAssigned ? 'text-slate-300' : 'text-slate-400'}`}>{t.id}</span>
+                </div>
+                <div className="text-xs text-slate-500 mt-0.5">{t.role}</div>
+              </button>
             );
           })}
           {filtered.length === 0 && <div className="px-4 py-6 text-sm text-slate-300 text-center">ไม่พบรายการ</div>}
@@ -489,6 +520,8 @@ function TechnicianPickerModal({ onAdd, onClose, assignedIds = [] }: { onAdd: (t
     </div>
   );
 }
+
+// ─── Service Picker ───────────────────────────────────────────────────────────
 
 function ServicePickerModal({ onAdd, onClose }: { onAdd: (name: string) => void; onClose: () => void }) {
   const [search, setSearch] = useState('');
@@ -553,9 +586,19 @@ function ServicePickerModal({ onAdd, onClose }: { onAdd: (name: string) => void;
   );
 }
 
-function PartPickerModal({ onAdd, onClose }: { onAdd: (name: string, qty: number) => void; onClose: () => void }) {
+// ─── Part Picker (uses real API parts) ───────────────────────────────────────
+
+function PartPickerModal({
+  parts,
+  onAdd,
+  onClose,
+}: {
+  parts: ApiPart[];
+  onAdd: (part_id: string, name: string, qty: number) => void;
+  onClose: () => void;
+}) {
   const [search, setSearch] = useState('');
-  const [selected, setSelected] = useState<string | null>(null);
+  const [selected, setSelected] = useState<ApiPart | null>(null);
   const [qty, setQty] = useState(1);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -567,7 +610,10 @@ function PartPickerModal({ onAdd, onClose }: { onAdd: (name: string, qty: number
     return () => document.removeEventListener('mousedown', handler);
   }, [onClose]);
 
-  const filtered = MOCK_PARTS.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
+  const filtered = parts.filter(p =>
+    p.part_name.toLowerCase().includes(search.toLowerCase()) ||
+    p.part_id.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.25)' }}>
@@ -590,26 +636,33 @@ function PartPickerModal({ onAdd, onClose }: { onAdd: (name: string, qty: number
         <div className="max-h-52 overflow-y-auto divide-y divide-slate-50">
           {filtered.map(p => (
             <button
-              key={p.name}
-              onClick={() => setSelected(p.name)}
-              className={`w-full text-left px-4 py-3 text-sm transition-colors ${selected === p.name ? 'font-semibold' : 'text-slate-700 hover:bg-slate-50'}`}
-              style={selected === p.name ? { backgroundColor: '#E6F6FF', color: '#1E3A8A' } : {}}
+              key={p.part_id}
+              onClick={() => { setSelected(p); setQty(1); }}
+              className={`w-full text-left px-4 py-3 text-sm transition-colors ${selected?.part_id === p.part_id ? 'font-semibold' : 'text-slate-700 hover:bg-slate-50'}`}
+              style={selected?.part_id === p.part_id ? { backgroundColor: '#E6F6FF', color: '#1E3A8A' } : {}}
             >
-              {p.name}
+              <div className="flex items-center justify-between">
+                <span>{p.part_name}</span>
+                <span className="text-xs text-slate-400">คงเหลือ {p.stock_qty}</span>
+              </div>
             </button>
           ))}
-          {filtered.length === 0 && <div className="px-4 py-6 text-sm text-slate-300 text-center">ไม่พบรายการ</div>}
+          {filtered.length === 0 && (
+            <div className="px-4 py-6 text-sm text-slate-300 text-center">
+              {parts.length === 0 ? 'กำลังโหลด...' : 'ไม่พบรายการ'}
+            </div>
+          )}
         </div>
         {selected && (
           <div className="px-4 py-3 border-t border-slate-100 flex items-center gap-3">
-            <span className="text-xs text-slate-500 flex-1 truncate">{selected}</span>
+            <span className="text-xs text-slate-500 flex-1 truncate">{selected.part_name}</span>
             <div className="flex items-center gap-2">
               <button onClick={() => setQty(q => Math.max(1, q - 1))} className="w-6 h-6 rounded-full bg-slate-100 text-slate-600 text-sm font-bold flex items-center justify-center hover:bg-slate-200 cursor-pointer">−</button>
               <span className="text-sm font-semibold w-5 text-center">{qty}</span>
-              <button onClick={() => setQty(q => q + 1)} className="w-6 h-6 rounded-full bg-slate-100 text-slate-600 text-sm font-bold flex items-center justify-center hover:bg-slate-200 cursor-pointer">+</button>
+              <button onClick={() => setQty(q => Math.min(q + 1, selected.stock_qty))} className="w-6 h-6 rounded-full bg-slate-100 text-slate-600 text-sm font-bold flex items-center justify-center hover:bg-slate-200 cursor-pointer">+</button>
             </div>
             <button
-              onClick={() => { onAdd(selected, qty); onClose(); }}
+              onClick={() => { onAdd(selected.part_id, selected.part_name, qty); onClose(); }}
               className="text-xs font-semibold text-white px-3 py-1.5 rounded-lg cursor-pointer"
               style={{ backgroundColor: '#1D4ED8' }}
             >
@@ -622,10 +675,24 @@ function PartPickerModal({ onAdd, onClose }: { onAdd: (name: string, qty: number
   );
 }
 
-function ServiceJobSection({ jobs, setJobs }: { jobs: ServiceJob[]; setJobs: React.Dispatch<React.SetStateAction<ServiceJob[]>> }) {
+// ─── Service Job ──────────────────────────────────────────────────────────────
+
+function ServiceJobSection({
+  jobs,
+  setJobs,
+  requestId,
+  apiParts,
+}: {
+  jobs: ServiceJob[];
+  setJobs: React.Dispatch<React.SetStateAction<ServiceJob[]>>;
+  requestId?: string;
+  apiParts: ApiPart[];
+}) {
   const addJob = () =>
     setJobs(prev => [...prev, {
       id: prev.length + 1,
+      serverId: undefined,
+      isDirty: false,
       detail: '',
       timeStart: '',
       timeEnd: '',
@@ -646,8 +713,16 @@ function ServiceJobSection({ jobs, setJobs }: { jobs: ServiceJob[]; setJobs: Rea
         </div>
       )}
       <div className="space-y-3 mb-3">
-        {jobs.map(job => (
-          <ServiceJobCard key={job.id} job={job} onChange={updated => updateJob(job.id, updated)} onDelete={() => setJobs(prev => prev.filter(j => j.id !== job.id))} />
+        {jobs.map((job, index) => (
+          <ServiceJobCard
+            key={job.id}
+            job={job}
+            jobNumber={index + 1}
+            requestId={requestId}
+            apiParts={apiParts}
+            onChange={updated => updateJob(job.id, updated)}
+            onDelete={() => setJobs(prev => prev.filter(j => j.id !== job.id))}
+          />
         ))}
       </div>
       <button
@@ -661,9 +736,103 @@ function ServiceJobSection({ jobs, setJobs }: { jobs: ServiceJob[]; setJobs: Rea
   );
 }
 
-function ServiceJobCard({ job, onChange, onDelete }: { job: ServiceJob; onChange: (j: ServiceJob) => void; onDelete: () => void }) {
+function ServiceJobCard({
+  job,
+  jobNumber,
+  requestId,
+  apiParts,
+  onChange,
+  onDelete,
+}: {
+  job: ServiceJob;
+  jobNumber: number;
+  requestId?: string;
+  apiParts: ApiPart[];
+  onChange: (j: ServiceJob) => void;
+  onDelete: () => void;
+}) {
   const [showPartModal, setShowPartModal] = useState(false);
   const [showTechModal, setShowTechModal] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const isDraft = !job.serverId;
+
+  // Mark dirty when editing a confirmed job
+  const handleChange = (updated: ServiceJob) => {
+    if (updated.serverId) {
+      onChange({ ...updated, isDirty: true });
+    } else {
+      onChange(updated);
+    }
+  };
+
+  // POST /api/service/:requestId/service-job
+  const handleConfirm = async () => {
+    if (!requestId) {
+      setError('ไม่มี Request ID — กรุณาเปิดหน้านี้ผ่าน Service Request');
+      return;
+    }
+    setIsSaving(true);
+    setError(null);
+    try {
+      const res = await apiClient.post(`/service/${requestId}/service-job`, {
+        service_details: job.detail || undefined,
+        start_time: job.timeStart || undefined,
+        end_time: job.timeEnd || undefined,
+      });
+      const created = res.data.data;
+      onChange({ ...job, serverId: created.service_id, isDirty: false });
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { error?: string } } };
+      setError(err?.response?.data?.error ?? 'เกิดข้อผิดพลาด กรุณาลองใหม่');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // PUT /api/service/service-job/:serverId
+  const handleSave = async () => {
+    if (!job.serverId) return;
+    setIsSaving(true);
+    setError(null);
+    try {
+      await apiClient.put(`/service/service-job/${job.serverId}`, {
+        service_details: job.detail || undefined,
+        job_status: job.status,
+        start_time: job.timeStart || undefined,
+        end_time: job.timeEnd || undefined,
+      });
+      onChange({ ...job, isDirty: false });
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { error?: string } } };
+      setError(err?.response?.data?.error ?? 'เกิดข้อผิดพลาด กรุณาลองใหม่');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // POST /api/service/service-job/:serverId/parts
+  const handleAddPart = async (part_id: string, name: string, qty: number) => {
+    if (!job.serverId) return;
+    setError(null);
+    try {
+      await apiClient.post(`/service/service-job/${job.serverId}/parts`, {
+        part_id,
+        quantity: qty,
+      });
+      const existing = job.parts.findIndex(p => p.part_id === part_id);
+      if (existing >= 0) {
+        const updated = job.parts.map((p, i) => i === existing ? { ...p, qty: p.qty + qty } : p);
+        onChange({ ...job, parts: updated });
+      } else {
+        onChange({ ...job, parts: [...job.parts, { part_id, name, qty }] });
+      }
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { error?: string } } };
+      setError(err?.response?.data?.error ?? 'ไม่สามารถเพิ่ม Part ได้');
+    }
+  };
 
   const statusColors: Record<ServiceJob['status'], string> = {
     'In Progress': '#FEF3C7',
@@ -678,24 +847,56 @@ function ServiceJobCard({ job, onChange, onDelete }: { job: ServiceJob; onChange
 
   return (
     <div className="rounded-xl border border-blue-100 overflow-hidden" style={{ backgroundColor: '#E6F6FF' }}>
-      {/* Header row */}
+      {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 flex-wrap">
-        <span className="font-bold text-slate-800 text-sm">Service Job detail {job.id}</span>
+        <span className="font-bold text-slate-800 text-sm">Service Job detail {jobNumber}</span>
+
+        {/* Server ID badge (shown after confirm) */}
+        {job.serverId && (
+          <span className="text-[10px] font-mono text-slate-400 bg-white px-2 py-0.5 rounded-full border border-slate-200">
+            {job.serverId}
+          </span>
+        )}
+
         <button onClick={onDelete} className="text-slate-300 hover:text-red-400 transition-colors cursor-pointer" title="ลบ">
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2L12 12M12 2L2 12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/></svg>
         </button>
-        <div className="flex items-center gap-2 ml-auto">
+
+        <div className="flex items-center gap-2 ml-auto flex-wrap">
+          {/* Confirm / Save Changes / Saved indicator */}
+          {isDraft ? (
+            <button
+              onClick={handleConfirm}
+              disabled={isSaving}
+              className="text-xs font-semibold text-white px-4 py-1.5 rounded-lg cursor-pointer disabled:opacity-60"
+              style={{ backgroundColor: '#16A34A' }}
+            >
+              {isSaving ? 'กำลังบันทึก...' : 'Confirm'}
+            </button>
+          ) : job.isDirty ? (
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="text-xs font-semibold text-white px-4 py-1.5 rounded-lg cursor-pointer disabled:opacity-60"
+              style={{ backgroundColor: '#1D4ED8' }}
+            >
+              {isSaving ? 'กำลังบันทึก...' : 'Save Changes'}
+            </button>
+          ) : (
+            <span className="text-[11px] text-green-600 font-semibold">✓ Saved</span>
+          )}
+
           <svg width="15" height="15" viewBox="0 0 15 15" fill="none" className="text-slate-400">
             <circle cx="7.5" cy="7.5" r="6.5" stroke="currentColor" strokeWidth="1.2" />
             <path d="M7.5 4.5V7.5L9.5 9.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
           </svg>
           <span className="text-red-400 -ml-1">*</span>
-          <DatePicker value={job.timeStart} onChange={v => onChange({ ...job, timeStart: v })} />
+          <DatePicker value={job.timeStart} onChange={v => handleChange({ ...job, timeStart: v })} />
           <span className="text-slate-400">-</span>
-          <DatePicker value={job.timeEnd} onChange={v => onChange({ ...job, timeEnd: v })} />
+          <DatePicker value={job.timeEnd} onChange={v => handleChange({ ...job, timeEnd: v })} />
           <select
             value={job.status}
-            onChange={e => onChange({ ...job, status: e.target.value as ServiceJob['status'] })}
+            onChange={e => handleChange({ ...job, status: e.target.value as ServiceJob['status'] })}
             className="text-xs font-semibold rounded-full px-3 py-1 border-0 outline-none cursor-pointer"
             style={{ backgroundColor: statusColors[job.status], color: statusTextColors[job.status] }}
           >
@@ -706,12 +907,20 @@ function ServiceJobCard({ job, onChange, onDelete }: { job: ServiceJob; onChange
         </div>
       </div>
 
+      {/* Error banner */}
+      {error && (
+        <div className="mx-4 mb-2 text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2 flex items-center justify-between">
+          <span>{error}</span>
+          <button onClick={() => setError(null)} className="ml-2 text-red-400 hover:text-red-600 cursor-pointer">✕</button>
+        </div>
+      )}
+
       {/* Detail */}
       <div className="px-4 pb-3">
         <div className="text-xs font-semibold text-slate-600 mb-1">Detail <span className="text-red-400">*</span></div>
         <input
           value={job.detail}
-          onChange={e => onChange({ ...job, detail: e.target.value })}
+          onChange={e => handleChange({ ...job, detail: e.target.value })}
           placeholder="รายละเอียดงาน..."
           className="w-full text-sm rounded-lg border border-blue-200 bg-white px-3 py-2 outline-none focus:border-blue-400"
         />
@@ -719,28 +928,31 @@ function ServiceJobCard({ job, onChange, onDelete }: { job: ServiceJob; onChange
 
       {/* Part + Assignment */}
       <div className="grid grid-cols-2 gap-3 px-4 pb-4">
+
         {/* Part */}
         <div>
           {showPartModal && (
             <PartPickerModal
-              onAdd={(name, qty) => {
-                const existing = job.parts.findIndex(p => p.name === name);
-                if (existing >= 0) {
-                  const updated = job.parts.map((p, i) => i === existing ? { ...p, qty: p.qty + qty } : p);
-                  onChange({ ...job, parts: updated });
-                } else {
-                  onChange({ ...job, parts: [...job.parts, { name, qty }] });
-                }
-              }}
+              parts={apiParts}
+              onAdd={handleAddPart}
               onClose={() => setShowPartModal(false)}
             />
           )}
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-semibold text-slate-600">Part <span className="text-red-400">*</span></span>
             <button
-              onClick={() => setShowPartModal(true)}
+              onClick={() => {
+                if (isDraft) {
+                  setError('กรุณากด Confirm ก่อนเพิ่ม Part');
+                  return;
+                }
+                setShowPartModal(true);
+              }}
               className="text-xs font-semibold px-3 py-1 rounded-lg cursor-pointer"
-              style={{ backgroundColor: '#97D2FF', color: '#1E3A8A' }}
+              style={{
+                backgroundColor: isDraft ? '#E2E8F0' : '#97D2FF',
+                color: isDraft ? '#94A3B8' : '#1E3A8A',
+              }}
             >
               + Add Part
             </button>
@@ -750,7 +962,6 @@ function ServiceJobCard({ job, onChange, onDelete }: { job: ServiceJob; onChange
             {job.parts.map((p, i) => (
               <div key={i} className="text-xs text-slate-700 flex items-center justify-between px-2 py-2">
                 <span><span className="text-slate-400 mr-1">•</span>{p.name} <span className="text-slate-400">×{p.qty}</span></span>
-                <button onClick={() => onChange({ ...job, parts: job.parts.filter((_, idx) => idx !== i) })} className="text-slate-300 hover:text-red-400 ml-2 cursor-pointer">✕</button>
               </div>
             ))}
           </div>
@@ -814,7 +1025,6 @@ type OtherService = {
 };
 
 function OtherServiceSection({ items, setItems }: { items: OtherService[]; setItems: React.Dispatch<React.SetStateAction<OtherService[]>> }) {
-
   const addItem = () =>
     setItems(prev => [...prev, {
       id: prev.length + 1,
@@ -868,7 +1078,6 @@ function OtherServiceCard({ item, onChange, onDelete }: { item: OtherService; on
 
   return (
     <div className="rounded-xl border border-blue-100 overflow-hidden" style={{ backgroundColor: '#E6F6FF' }}>
-      {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 flex-wrap">
         <span className="font-bold text-slate-800 text-sm">Service {item.id}</span>
         <button onClick={onDelete} className="text-slate-300 hover:text-red-400 transition-colors cursor-pointer">
@@ -893,9 +1102,7 @@ function OtherServiceCard({ item, onChange, onDelete }: { item: OtherService; on
         </div>
       </div>
 
-      {/* Service + Assignment */}
       <div className="grid grid-cols-2 gap-3 px-4 pb-4">
-        {/* Service list */}
         <div>
           {showServiceModal && (
             <ServicePickerModal
@@ -923,7 +1130,6 @@ function OtherServiceCard({ item, onChange, onDelete }: { item: OtherService; on
           </div>
         </div>
 
-        {/* Assignment */}
         <div>
           {showTechModal && (
             <TechnicianPickerModal
