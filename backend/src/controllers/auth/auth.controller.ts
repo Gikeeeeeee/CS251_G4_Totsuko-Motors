@@ -2,18 +2,21 @@ import { Response, NextFunction } from 'express';
 import { AuthRequest } from '../../middlewares/auth.middleware';
 import { loginUser, registerUser, refreshAccessToken } from '../../services/auth/auth.service';
 import { generateToken, generateRefreshToken } from '../../utils/jwt';
+import { db } from '../../db';
+import { userAccount, employee } from '../../db/schema';
+import { eq } from 'drizzle-orm';
 
 export const login = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { email, password } = req.body;
+    const { emailOrUsername, password } = req.body;
 
-    if (!email || !password) {
-      const error: any = new Error('กรุณากรอก email และ password');
+    if (!emailOrUsername || !password) {
+      const error: any = new Error('กรุณากรอก email/username และ password');
       error.statusCode = 400;
       return next(error);
     }
 
-    const user = await loginUser(email, password);
+    const user = await loginUser(emailOrUsername, password);
     const token = generateToken(user.userId);
     const refreshToken = generateRefreshToken(user.userId);
 
@@ -52,10 +55,30 @@ export const logout = (req: AuthRequest, res: Response, next: NextFunction) => {
 
 export const verify = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
+   
+    const user = await db.select({
+      userId: userAccount.userId,
+      employeeId: employee.employeeId,
+      name: userAccount.name,
+      email: userAccount.email,
+      username: userAccount.username,
+      role: userAccount.role,
+      phone: employee.phone,
+      hireDate: employee.hireDate,
+    }).from(userAccount)
+    .leftJoin(employee, eq(userAccount.userId, employee.userId))
+    .where(eq(userAccount.userId, req.userId!)).limit(1);
+
+    if (user.length === 0) {
+      const error: any = new Error('ไม่พบผู้ใช้งาน');
+      error.statusCode = 404;
+      return next(error);
+    }
+
     res.json({
       success: true,
       message: 'Token ถูกต้อง',
-      userId: req.userId,
+      user: user[0],
     });
   } catch (error) {
     next(error);
@@ -64,15 +87,23 @@ export const verify = async (req: AuthRequest, res: Response, next: NextFunction
 
 export const register = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { email, username, password, userId } = req.body;
+    const { email, username, password, role, name, phone, hireDate } = req.body;
 
-    if (!email || !username || !password || !userId) {
-      const error: any = new Error('กรุณากรอกข้อมูลให้ครบถ้วน');
+    if (!email || !username || !password || !role || !name) {
+      const error: any = new Error('กรุณากรอกข้อมูลให้ครบถ้วน (email, username, password, role, name)');
       error.statusCode = 400;
       return next(error);
     }
 
-    const user = await registerUser(email, username, password, userId);
+    // ตรวจสอบว่า role ถูกต้องหรือไม่
+    const validRoles = ['technician', 'clerk', 'purchasingStaff'];
+    if (!validRoles.includes(role)) {
+      const error: any = new Error('Role ไม่ถูกต้อง กรุณาเลือก technician, clerk หรือ purchasingStaff');
+      error.statusCode = 400;
+      return next(error);
+    }
+
+    const user = await registerUser(email, username, password, role, name, phone, hireDate);
     const token = generateToken(user.userId);
     const refreshToken = generateRefreshToken(user.userId);
 
