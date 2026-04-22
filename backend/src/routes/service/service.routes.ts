@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getServiceRequests } from '../../controllers/service/clerk-dashboard.controller';
+import { getServiceRequests } from '../../controllers/service/dashboard-detail.controller';
 import { createUsePart } from '../../controllers/service/part-usage.controller';
 import {
   createServiceJob,
