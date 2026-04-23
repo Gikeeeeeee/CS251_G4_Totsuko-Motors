@@ -26,7 +26,11 @@ interface ServiceRequest {
     checkingDate: string;
     odometer: number | null;
     clerkName: string;
+    model: string | null;   // เพิ่ม
+    color: string | null;   // เพิ่ม
+    year: number | null;    // เพิ่ม
 }
+
 
 
 export default function TechnicianPage() {
@@ -41,7 +45,7 @@ export default function TechnicianPage() {
     useEffect(() => {
         const loadData = async () => {
             try {
-                const response = await apiClient.get('/service/service-request', {
+                const response = await apiClient.get('/service/technician/requests', {
                     params: { page: currentPage, limit: itemsPerPage },
                 });
                 setRequests(response.data.data);
@@ -187,11 +191,16 @@ export default function TechnicianPage() {
 
                                             {/* คอลัมน์ 2: Customer */}
                                             <td className="px-6 py-4">
-                                                <div className="text-sm font-medium text-gray-900">
+                                                 <div className="text-md text-[#002448] font-semibold text-gray-900">
                                                     {request.customerName}
                                                 </div>
+                                                
+                                                <div className="text-sm font-medium text-gray-900">
+                                                    {request.model} {request.year}
+                                                </div>
+
                                                 <div className="text-xs text-gray-500">
-                                                    Clerk: {request.clerkName}
+                                                    {request.color}
                                                 </div>
                                             </td>
 
@@ -205,7 +214,7 @@ export default function TechnicianPage() {
                                             {/* คอลัมน์ 4: Status */}
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <span className="px-4 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-[#D5ECF8] text-[#002448]">
-                                                    {request.requestStatus}
+                                                    INTAKE {/*request.requestStatus*/}
                                                 </span>
                                             </td>
 
