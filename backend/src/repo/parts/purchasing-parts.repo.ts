@@ -7,6 +7,10 @@ export type PurchasingPartStatus =
   | 'Waiting for delivery';
 
 export type PurchasingPartRow = {
+  category: any;
+  unitCost: number;
+  stockQuantity: any;
+  name: any;
   part_id: string;
   part_name: string;
   stock_qty: number;

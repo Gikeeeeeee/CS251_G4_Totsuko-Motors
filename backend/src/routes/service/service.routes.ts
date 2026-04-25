@@ -6,6 +6,7 @@ import {
   updateServiceJob,
 } from '../../controllers/service/service-job.controller';
 import { createServiceController } from '../../controllers/service/service-request.controller';
+import { getAvailableParts, postPurchaseOrder } from '../../controllers/service/purchase-order.controller';
 
 const router = Router();
 
@@ -14,5 +15,8 @@ router.post('/service-request/create', createServiceController);
 router.post('/:serviceId/service-job', createServiceJob);
 router.put('/service-job/:id', updateServiceJob);
 router.post('/service-job/:id/parts', createUsePart);
+
+router.get('/parts', getAvailableParts);
+router.post('/order', postPurchaseOrder);
 
 export default router;
