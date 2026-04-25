@@ -1,6 +1,6 @@
 .container {
   min-height: 100vh;
-  background-color: #F8FAFC;
+  background-color: #f3faff;
 }
 
 .main {
@@ -199,7 +199,7 @@
   border: 1px solid #f3f4f6;
   border-radius: 0.75rem;
   padding: 1.5rem;
-  background-color: rgba(248, 250, 252, 0.5); /* #F8FAFC/50 */
+  background-color: rgba(243, 250, 255, 0.5); /* #f3faff/50 */
 }
 
 .jobHeader {
