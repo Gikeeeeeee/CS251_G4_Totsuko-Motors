@@ -10,7 +10,13 @@ export async function getServiceList(page: number, limit: number, status?: strin
     problemDescription: row.serviceRequest.problemDescription,
     odometer: row.serviceRequest.odometer,
     customerName: row.customer?.name || 'Unknown',
-    plateNumber: row.vehicle?.plateNumber || 'N/A',
+    vehicleDetail: {
+      plateNumber: row.vehicle?.plateNumber || 'N/A',
+      model: row.vehicle?.model || 'Unknown',
+      brand: row.vehicle?.brand || 'Unknown',
+      color: row.vehicle?.color || 'N/A',
+      year: row.vehicle?.year || 'N/A',
+    },
     clerkName: row.employee?.name || 'Unassigned',
   }));
 
