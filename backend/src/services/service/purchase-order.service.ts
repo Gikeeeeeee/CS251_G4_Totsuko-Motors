@@ -1,6 +1,13 @@
-// src/services/purchasing/purchase-order.service.ts
 import { findPurchasingParts } from '../../repo/parts/purchasing-parts.repo';
-import { createPurchaseOrderTransaction } from '../../repo/service/purchase-order.repo';
+import { 
+  createPurchaseOrderTransaction,
+  findPurchaseOrdersRepo,
+  findPurchaseOrderPartsRepo,
+  findEmployeeIdByUserIdRepo,
+  updatePurchaseOrderStatusTransaction,
+  findSuppliersRepo,
+
+} from '../../repo/service/purchase-order.repo';
 import { generatePoId } from '../../utils/generateId';
 
 export async function getPartsForOrdering() {
@@ -28,7 +35,7 @@ export async function createNewPurchaseOrder(staffId: string, payload: any) {
   const poData = {
     poId: await generatePoId(),
     orderStatus: 'Pending',
-    orderDate: new Date().toISOString().split('T')[0], // YYYY-MM-DD for date column
+    orderDate: new Date().toISOString().split('T')[0],
     purchasingStaffId: staffId,
     supplierId: supplierId,
     orderQuantity: items.reduce((acc: number, item: any) => acc + Number(item.quantity), 0),
@@ -41,4 +48,38 @@ export async function createNewPurchaseOrder(staffId: string, payload: any) {
     message: 'บันทึกใบสั่งซื้อสำเร็จ',
     data: result
   };
+}
+
+// ============================================================================
+// 🚀 [ของใหม่] GET ซ้าย, GET ขวา, PATCH สถานะ
+// ============================================================================
+
+export async function getSuppliersService() {
+  return await findSuppliersRepo();
+}
+
+export async function getPurchaseOrdersService() {
+  return await findPurchaseOrdersRepo();
+}
+
+export async function getPurchaseOrderPartsService(poId: string) {
+  return await findPurchaseOrderPartsRepo(poId);
+}
+
+export async function updateOrderStatusService(poId: string, userId: string, newStatus: string) {
+  // 1. หา employeeId จาก userId
+  const employeeId = await findEmployeeIdByUserIdRepo(userId);
+  
+  if (!employeeId) {
+    throw new Error('NOT_FOUND_EMPLOYEE');
+  }
+
+  // 2. สั่งอัปเดตสถานะและบันทึกรหัสพนักงาน
+  const updatedOrder = await updatePurchaseOrderStatusTransaction(poId, employeeId, newStatus);
+
+  if (!updatedOrder) {
+    throw new Error('NOT_FOUND_ORDER');
+  }
+
+  return updatedOrder;
 }
