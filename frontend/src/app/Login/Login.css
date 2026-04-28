@@ -1,0 +1,103 @@
+* {
+  box-sizing: border-box;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+.login-page {
+  height: 100vh;
+  background: #cfd6dc;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* กล่อง */
+.login-container {
+  width: 420px;
+  background: #e9ecef;
+  border-radius: 12px;
+  padding: 30px 35px 40px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+}
+
+/* header */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header h2 {
+  margin: 0;
+  color: #0b2c4a;
+  font-size: 22px;
+}
+
+.header small {
+  color: #6c757d;
+}
+
+/* divider */
+.divider {
+  height: 1px;
+  background: #c5ccd3;
+  margin: 15px 0 25px;
+}
+
+/* label */
+label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #0b2c4a;
+  display: block;
+  margin-bottom: 6px;
+}
+
+/* input */
+input {
+  width: 100%;
+  padding: 12px;
+  border-radius: 6px;
+  border: none;
+  background: #dbe1e6;
+  margin-bottom: 18px;
+  font-size: 14px;
+}
+
+input:focus {
+  outline: none;
+  background: #eef2f6;
+}
+
+/* button */
+button {
+  width: 60%;
+  margin: 10px auto 0;
+  display: block;
+  padding: 12px;
+  background: linear-gradient(to right, #0b2c4a, #173f66);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  box-shadow: 0 5px 10px rgba(0,0,0,0.15);
+  transition: 0.2s;
+}
+
+button:hover {
+  opacity: 0.9;
+}
+
+/* logo */
+.logo {
+  text-align: right;
+  font-weight: bold;
+  color: #0b2c4a;
+}
+
+.logo span {
+  display: block;
+  font-size: 12px;
+  letter-spacing: 2px;
+}
