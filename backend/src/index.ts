@@ -7,6 +7,7 @@ import partsRoutes from './routes/parts/parts.routes';
 import authRoutes from './routes/auth/auth.routes';
 import appointmentRoutes from './routes/appointment/appointment.routes';
 import invoiceRoutes from './routes/invoice/invoice.routes';
+import technicianRoutes from './routes/technician/technician.routes';
 
 const app = express();
 
@@ -24,6 +25,7 @@ app.use('/api/service', serviceRoutes);
 app.use('/api/parts', partsRoutes);
 app.use('/api/appointments', appointmentRoutes);
 app.use('/api/invoices', invoiceRoutes);
+app.use('/api/technicians', technicianRoutes);
 
 // Health Check Route (เอาไว้ให้ FE ยิงมาเทสว่า BE ติดหรือยัง)
 app.get('/api/health', (req, res) => {
