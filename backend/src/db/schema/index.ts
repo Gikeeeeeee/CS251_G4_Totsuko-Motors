@@ -102,7 +102,7 @@ export const invoice = pgTable('Invoice', {
 export const invoiceDetail = pgTable(
   'InvoiceDetail',
   {
-    invoiceId: varchar('invoice_id', { length: 10 }).references(() => invoice.invoiceId),
+    invoiceId: varchar('invoice_id', { length: 10 }).notNull().references(() => invoice.invoiceId),
     details: text('details').notNull(),
     amount: decimal('amount', { precision: 10, scale: 2 }),
   },
@@ -142,8 +142,8 @@ export const part = pgTable('Part', {
 export const purchaseOrderPart = pgTable(
   'PurchaseOrderPart',
   {
-    poId: varchar('po_id', { length: 10 }).references(() => purchaseOrder.poId),
-    partId: varchar('part_id', { length: 10 }).references(() => part.partId),
+    poId: varchar('po_id', { length: 10 }).notNull().references(() => purchaseOrder.poId),
+    partId: varchar('part_id', { length: 10 }).notNull().references(() => part.partId),
     buyingPrice: decimal('buying_price', { precision: 10, scale: 2 }),
   },
   (table) => ({
@@ -165,8 +165,8 @@ export const serviceJob = pgTable('ServiceJob', {
 export const usePart = pgTable(
   'UsePart',
   {
-    serviceId: varchar('service_id', { length: 10 }).references(() => serviceJob.serviceId),
-    partId: varchar('part_id', { length: 10 }).references(() => part.partId),
+    serviceId: varchar('service_id', { length: 10 }).notNull().references(() => serviceJob.serviceId),
+    partId: varchar('part_id', { length: 10 }).notNull().references(() => part.partId),
     quantity: integer('quantity'),
   },
   (table) => ({
@@ -177,8 +177,8 @@ export const usePart = pgTable(
 export const assignTo = pgTable(
   'AssignTo',
   {
-    serviceId: varchar('service_id', { length: 10 }).references(() => serviceJob.serviceId),
-    technicianId: varchar('technician_id', { length: 10 }).references(() => technician.employeeId),
+    serviceId: varchar('service_id', { length: 10 }).notNull().references(() => serviceJob.serviceId),
+    technicianId: varchar('technician_id', { length: 10 }).notNull().references(() => technician.employeeId),
   },
   (table) => ({
     pk: primaryKey({ columns: [table.serviceId, table.technicianId] }),

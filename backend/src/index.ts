@@ -5,6 +5,7 @@ import 'dotenv/config';
 import serviceRoutes from './routes/service/service.routes';
 import partsRoutes from './routes/parts/parts.routes';
 import authRoutes from './routes/auth/auth.routes';
+import appointmentRoutes from './routes/appointment/appointment.routes';
 
 const app = express();
 
@@ -20,6 +21,7 @@ app.use(cookieParser());
 app.use('/api/auth', authRoutes);
 app.use('/api/service', serviceRoutes);
 app.use('/api/parts', partsRoutes);
+app.use('/api/appointments', appointmentRoutes);
 
 // Health Check Route (เอาไว้ให้ FE ยิงมาเทสว่า BE ติดหรือยัง)
 app.get('/api/health', (req, res) => {
