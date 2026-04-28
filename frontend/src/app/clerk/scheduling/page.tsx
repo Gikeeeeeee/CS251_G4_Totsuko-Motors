@@ -40,9 +40,9 @@ const APPOINTMENTS: Appointment[] = [
   { day: 0, startSlot: 0,  endSlot: 4,  plate: '4ขฌ 6931', province: 'กรุงเทพ' },
   { day: 0, startSlot: 4,  endSlot: 8,  plate: 'รย 232',    province: 'ปทุมธานี' },
   { day: 0, startSlot: 8,  endSlot: 12, plate: 'รย 232',    province: 'ปทุมธานี' },
-  { day: 0, startSlot: 12, endSlot: 13, plate: 'คฌ 4320',   province: 'กรุงเทพ' },
-  { day: 0, startSlot: 13, endSlot: 17, plate: 'รย 232',    province: 'ปทุมธานี' },
-  { day: 0, startSlot: 17, endSlot: 20, plate: '8ฌด 3232',  province: 'กรุงเทพ' },
+  { day: 0, startSlot: 12, endSlot: 14, plate: 'คฌ 4320',   province: 'กรุงเทพ' },
+  { day: 0, startSlot: 14, endSlot: 17, plate: 'รย 232',    province: 'ปทุมธานี' },
+  // { day: 0, startSlot: 17, endSlot: 20, plate: '8ฌด 3232',  province: 'กรุงเทพ' },
 
   // MON
   { day: 1, startSlot: 0,  endSlot: 5,  plate: 'ขศ 7638',  province: 'กรุงเทพ' },
@@ -274,11 +274,11 @@ export default function SchedulingPage() {
                   gridColumn: a.day + 2,
                 }}
               >
-                <div className="h-full border-2 border-[#002446] rounded-md flex flex-col justify-between p-2 bg-white">
+                <div className="h-full border-2 border-t-6 border-[#113357] rounded-b-xl flex flex-col justify-between p-2 bg-white">
                   <span className="text-[10px] text-[#64748B]">{slotLabel(a.startSlot)}</span>
                   <div className="text-center leading-tight">
                     <div className="text-xs font-semibold text-[#002446]">{a.plate}</div>
-                    <div className="text-xs text-[#002446]">{a.province}</div>
+                    <div className="text-xs text-[#113357]">{a.province}</div>
                   </div>
                   <span className="text-[10px] text-[#64748B] text-right">{slotLabel(a.endSlot)}</span>
                 </div>
