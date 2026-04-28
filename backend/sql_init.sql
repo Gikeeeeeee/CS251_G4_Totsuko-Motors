@@ -2,20 +2,20 @@
 -- 1. บัญชีผู้ใช้และพนักงาน
 CREATE TABLE IF NOT EXISTS "UserAccount" (
     "user_id" VARCHAR(10) PRIMARY KEY,
+    "name" VARCHAR(100) NOT NULL,
     "email" VARCHAR(100) UNIQUE NOT NULL,
     "username" VARCHAR(50) UNIQUE NOT NULL,
     "password" VARCHAR(255) NOT NULL,
-    "role" VARCHAR(20),
+    "role" VARCHAR(20) NOT NULL,
     "status" VARCHAR(20) DEFAULT 'Active'
 );
 
 CREATE TABLE IF NOT EXISTS "Employee" (
     "employee_id" VARCHAR(10) PRIMARY KEY,
     "name" VARCHAR(100) NOT NULL,
-    "email" VARCHAR(100),
+    "phone" VARCHAR(20),
     "hire_date" DATE,
-    "job_role" VARCHAR(30),
-    "user_id" VARCHAR(10) REFERENCES "UserAccount"("user_id")
+    "user_id" VARCHAR(10) UNIQUE REFERENCES "UserAccount"("user_id")
 );
 
 -- ตารางย่อยพนักงาน
@@ -33,8 +33,7 @@ CREATE TABLE IF NOT EXISTS "Customer" (
     "name" VARCHAR(100) NOT NULL,
     "phone" VARCHAR(20),
     "address" TEXT,
-    "email" VARCHAR(100),
-    "user_id" VARCHAR(10) REFERENCES "UserAccount"("user_id")
+    "email" VARCHAR(100)
 );
 
 CREATE TABLE IF NOT EXISTS "Vehicle" (
@@ -72,11 +71,12 @@ CREATE TABLE IF NOT EXISTS "Appointment" (
 
 CREATE TABLE IF NOT EXISTS "ServiceJob" (
     "service_id" VARCHAR(10) PRIMARY KEY,
-    "start_time" TIMESTAMP,
+    "service_type" VARCHAR(50),
     "service_details" TEXT,
-    "job_status" VARCHAR(30),
-    "labor_cost" DECIMAL(10,2),
+    "start_time" TIMESTAMP,
     "end_time" TIMESTAMP,
+    "service_status" VARCHAR(30),
+    "labor_cost" DECIMAL(10,2),
     "request_id" VARCHAR(10) REFERENCES "ServiceRequest"("request_id")
 );
 
@@ -99,7 +99,7 @@ CREATE TABLE IF NOT EXISTS "Supplier" (
 );
 
 CREATE TABLE IF NOT EXISTS "PurchaseOrder" (
-    "po_id" VARCHAR(10) PRIMARY KEY,
+    "po_id" VARCHAR(20) PRIMARY KEY,
     "order_status" VARCHAR(30),
     "order_date" DATE,
     "purchasing_staff_id" VARCHAR(10) REFERENCES "PurchasingStaff"("employee_id"),
@@ -108,17 +108,24 @@ CREATE TABLE IF NOT EXISTS "PurchaseOrder" (
 );
 
 CREATE TABLE IF NOT EXISTS "PurchaseOrderPart" (
-    "po_id" VARCHAR(10) REFERENCES "PurchaseOrder"("po_id"),
+    "po_id" VARCHAR(20) REFERENCES "PurchaseOrder"("po_id"),
     "part_id" VARCHAR(10) REFERENCES "Part"("part_id"),
     "buying_price" DECIMAL(10,2),
+    "quantity" INT,
     PRIMARY KEY ("po_id", "part_id")
 );
 
-CREATE TABLE IF NOT EXISTS "use_part" (
+CREATE TABLE IF NOT EXISTS "UsePart" (
+    "service_id" VARCHAR(10) REFERENCES "ServiceJob"("service_id"),
     "part_id" VARCHAR(10) REFERENCES "Part"("part_id"),
-    "job_id" VARCHAR(10) REFERENCES "ServiceJob"("service_id"),
     "quantity" INT,
-    PRIMARY KEY ("part_id", "job_id")
+    PRIMARY KEY ("service_id", "part_id")
+);
+
+CREATE TABLE IF NOT EXISTS "AssignTo" (
+    "service_id" VARCHAR(10) REFERENCES "ServiceJob"("service_id"),
+    "technician_id" VARCHAR(10) REFERENCES "Technician"("employee_id"),
+    PRIMARY KEY ("service_id", "technician_id")
 );
 CREATE TABLE IF NOT EXISTS "Invoice" (
     "invoice_id" VARCHAR(10) PRIMARY KEY,
@@ -126,4 +133,11 @@ CREATE TABLE IF NOT EXISTS "Invoice" (
     "payment_status" VARCHAR(30),
     "total_amount" DECIMAL(10, 2),
     "request_id" VARCHAR(10) UNIQUE REFERENCES "ServiceRequest"("request_id")
+);
+
+CREATE TABLE IF NOT EXISTS "InvoiceDetail" (
+    "invoice_id" VARCHAR(10) REFERENCES "Invoice"("invoice_id"),
+    "details" TEXT NOT NULL,
+    "amount" DECIMAL(10, 2),
+    PRIMARY KEY ("invoice_id", "details")
 );
