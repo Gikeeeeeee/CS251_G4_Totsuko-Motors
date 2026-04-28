@@ -86,6 +86,8 @@ export const appointment = pgTable('Appointment', {
   appointmentId: varchar('appointment_id', { length: 10 }).primaryKey(),
   appointmentDate: timestamp('appointment_date'),
   appointStatus: varchar('appoint_status', { length: 20 }),
+  notes: text('notes'),
+  createdAt: timestamp('created_at').defaultNow(),
   requestId: varchar('request_id', { length: 10 }).references(() => serviceRequest.requestId),
 });
 

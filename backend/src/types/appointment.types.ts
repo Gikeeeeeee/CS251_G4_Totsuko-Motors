@@ -10,3 +10,9 @@ export type CreateAppointmentBody = {
   appointment_date: string;
   notes?: string;
 };
+
+export type UpdateAppointmentBody = {
+  status: AppointmentStatus;
+  appointment_date?: string;
+  notes?: string;
+};
