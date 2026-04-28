@@ -86,6 +86,8 @@ export const appointment = pgTable('Appointment', {
   appointmentId: varchar('appointment_id', { length: 10 }).primaryKey(),
   appointmentDate: timestamp('appointment_date'),
   appointStatus: varchar('appoint_status', { length: 20 }),
+  notes: text('notes'),
+  createdAt: timestamp('created_at').defaultNow(),
   requestId: varchar('request_id', { length: 10 }).references(() => serviceRequest.requestId),
 });
 
@@ -102,7 +104,7 @@ export const invoice = pgTable('Invoice', {
 export const invoiceDetail = pgTable(
   'InvoiceDetail',
   {
-    invoiceId: varchar('invoice_id', { length: 10 }).references(() => invoice.invoiceId),
+    invoiceId: varchar('invoice_id', { length: 10 }).notNull().references(() => invoice.invoiceId),
     details: text('details').notNull(),
     amount: decimal('amount', { precision: 10, scale: 2 }),
   },
@@ -166,8 +168,8 @@ export const serviceJob = pgTable('ServiceJob', {
 export const usePart = pgTable(
   'UsePart',
   {
-    serviceId: varchar('service_id', { length: 10 }).references(() => serviceJob.serviceId),
-    partId: varchar('part_id', { length: 10 }).references(() => part.partId),
+    serviceId: varchar('service_id', { length: 10 }).notNull().references(() => serviceJob.serviceId),
+    partId: varchar('part_id', { length: 10 }).notNull().references(() => part.partId),
     quantity: integer('quantity'),
   },
   (table) => ({
@@ -178,8 +180,8 @@ export const usePart = pgTable(
 export const assignTo = pgTable(
   'AssignTo',
   {
-    serviceId: varchar('service_id', { length: 10 }).references(() => serviceJob.serviceId),
-    technicianId: varchar('technician_id', { length: 10 }).references(() => technician.employeeId),
+    serviceId: varchar('service_id', { length: 10 }).notNull().references(() => serviceJob.serviceId),
+    technicianId: varchar('technician_id', { length: 10 }).notNull().references(() => technician.employeeId),
   },
   (table) => ({
     pk: primaryKey({ columns: [table.serviceId, table.technicianId] }),

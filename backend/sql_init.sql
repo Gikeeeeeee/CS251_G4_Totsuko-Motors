@@ -65,6 +65,8 @@ CREATE TABLE IF NOT EXISTS "Appointment" (
     "appointment_id" VARCHAR(10) PRIMARY KEY,
     "appointment_date" TIMESTAMP,
     "appoint_status" VARCHAR(20),
+    "notes" TEXT,
+    "created_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     "request_id" VARCHAR(10) REFERENCES "ServiceRequest"("request_id")
 );
 
