@@ -120,7 +120,7 @@ export const supplier = pgTable('Supplier', {
 });
 
 export const purchaseOrder = pgTable('PurchaseOrder', {
-  poId: varchar('po_id', { length: 10 }).primaryKey(),
+  poId: varchar('po_id', { length: 20 }).primaryKey(),
   orderStatus: varchar('order_status', { length: 30 }),
   orderDate: date('order_date'),
   purchasingStaffId: varchar('purchasing_staff_id', { length: 10 }).references(
@@ -142,9 +142,10 @@ export const part = pgTable('Part', {
 export const purchaseOrderPart = pgTable(
   'PurchaseOrderPart',
   {
-    poId: varchar('po_id', { length: 10 }).references(() => purchaseOrder.poId),
+    poId: varchar('po_id', { length: 20 }).references(() => purchaseOrder.poId),
     partId: varchar('part_id', { length: 10 }).references(() => part.partId),
     buyingPrice: decimal('buying_price', { precision: 10, scale: 2 }),
+    quantity: integer('quantity'),
   },
   (table) => ({
     pk: primaryKey({ columns: [table.poId, table.partId] }),

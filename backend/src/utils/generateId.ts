@@ -1,6 +1,6 @@
 import { db } from '../db';
-import { userAccount, employee } from '../db/schema';
-import { sql, eq } from 'drizzle-orm';
+import { userAccount, employee, purchaseOrder} from '../db/schema';
+import { sql, eq, like, desc } from 'drizzle-orm';
 
 /**
  * สร้าง employeeId ตามรูปแบบ:
@@ -51,4 +51,33 @@ export const generateUserId = (): string => {
   const prefix = 'U';
   const randomNumber = Math.floor(Math.random() * 1000000000).toString().padStart(9, '0');
   return `${prefix}${randomNumber}`;
+};
+
+export const generatePoId = async (): Promise<string> => {
+  const prefix = 'PO';
+  const currentYear = new Date().getFullYear(); // เช่น 2026
+  const searchPattern = `${prefix}-${currentYear}-%`;
+
+  // หา poId ล่าสุดของปีปัจจุบัน
+  const result = await db
+    .select({ poId: purchaseOrder.poId })
+    .from(purchaseOrder)
+    .where(like(purchaseOrder.poId, searchPattern))
+    .orderBy(desc(purchaseOrder.poId))
+    .limit(1);
+
+  let nextNumber = 1;
+
+  if (result.length > 0) {
+    // ดึงตัวเลข 4 หลักสุดท้ายออกมา เช่น PO-2026-0005 -> 0005 -> 5
+    const lastId = result[0].poId;
+    const lastNumberStr = lastId.split('-')[2]; // แยกเอาส่วนท้ายสุด
+    const lastNumber = parseInt(lastNumberStr);
+    nextNumber = lastNumber + 1;
+  }
+
+  // สร้าง ID ใหม่: PO + ปี + เลขรัน 4 หลัก (0001, 0002, ...)
+  const newPoId = `${prefix}-${currentYear}-${nextNumber.toString().padStart(4, '0')}`;
+
+  return newPoId;
 };
