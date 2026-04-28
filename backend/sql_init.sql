@@ -65,6 +65,8 @@ CREATE TABLE IF NOT EXISTS "Appointment" (
     "appointment_id" VARCHAR(10) PRIMARY KEY,
     "appointment_date" TIMESTAMP,
     "appoint_status" VARCHAR(20),
+    "notes" TEXT,
+    "created_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     "request_id" VARCHAR(10) REFERENCES "ServiceRequest"("request_id")
 );
 
@@ -117,4 +119,11 @@ CREATE TABLE IF NOT EXISTS "use_part" (
     "job_id" VARCHAR(10) REFERENCES "ServiceJob"("service_id"),
     "quantity" INT,
     PRIMARY KEY ("part_id", "job_id")
+);
+CREATE TABLE IF NOT EXISTS "Invoice" (
+    "invoice_id" VARCHAR(10) PRIMARY KEY,
+    "created_date" DATE DEFAULT CURRENT_DATE,
+    "payment_status" VARCHAR(30),
+    "total_amount" DECIMAL(10, 2),
+    "request_id" VARCHAR(10) UNIQUE REFERENCES "ServiceRequest"("request_id")
 );

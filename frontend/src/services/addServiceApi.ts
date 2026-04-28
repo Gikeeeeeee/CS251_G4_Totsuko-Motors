@@ -49,6 +49,6 @@ export type CreateServiceResponse = {
 };
 
 export async function createService(data: CreateServiceRequest): Promise<CreateServiceResponse> {
-  const response = await apiClient.post<CreateServiceResponse>('/service/create', data);
+  const response = await apiClient.post<CreateServiceResponse>('/api/service/service-request/create', data);
   return response.data;
 }
