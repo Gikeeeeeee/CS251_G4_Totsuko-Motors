@@ -1,4 +1,5 @@
 import { db } from '../../db';
+import { eq } from 'drizzle-orm';
 import { appointment } from '../../db/schema';
 import { AppointmentStatus } from '../../types/appointment.types';
 
@@ -21,4 +22,11 @@ export async function createAppointmentRecord(data: CreateAppointmentRecord) {
     .returning();
 
   return createdAppointment;
+}
+
+export async function getAppointmentsByRequestId(requestId: string) {
+  return db
+    .select()
+    .from(appointment)
+    .where(eq(appointment.requestId, requestId));
 }

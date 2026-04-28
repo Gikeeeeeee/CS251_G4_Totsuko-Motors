@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto';
-import { createAppointmentRecord } from '../../repo/appointment/appointment.repo';
+import { createAppointmentRecord, getAppointmentsByRequestId as fetchAppointmentsByRequestId } from '../../repo/appointment/appointment.repo';
 import { AppointmentStatus, CreateAppointmentBody } from '../../types/appointment.types';
 
 function generateId(prefix: string) {
@@ -33,4 +33,12 @@ export async function createAppointment(body: CreateAppointmentBody) {
   };
 
   return createAppointmentRecord(record);
+}
+
+export async function getAppointmentsByRequestId(requestId: string) {
+  if (!requestId) {
+    throw new Error('requestId is required');
+  }
+
+  return await fetchAppointmentsByRequestId(requestId);
 }
