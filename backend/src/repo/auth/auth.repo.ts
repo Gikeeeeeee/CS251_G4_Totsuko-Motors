@@ -30,6 +30,10 @@ export async function findExistingUser(email: string, username: string, userId: 
 
 export async function createUser(data: {
   userId: string;
+<<<<<<< HEAD
+=======
+  name: string;
+>>>>>>> merge/sprint2/be
   email: string;
   username: string;
   password: string;

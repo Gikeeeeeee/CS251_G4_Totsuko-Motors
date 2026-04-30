@@ -13,10 +13,11 @@ import { relations } from 'drizzle-orm';
 
 export const userAccount = pgTable('UserAccount', {
   userId: varchar('user_id', { length: 10 }).primaryKey(),
+  name: varchar('name', { length: 100 }).notNull(),
   email: varchar('email', { length: 100 }).unique().notNull(),
   username: varchar('username', { length: 50 }).unique().notNull(),
   password: varchar('password', { length: 255 }).notNull(),
-  role: varchar('role', { length: 20 }),
+  role: varchar('role', { length: 20 }).notNull(),
   status: varchar('status', { length: 20 }).default('Active'),
 });
 
@@ -85,6 +86,11 @@ export const appointment = pgTable('Appointment', {
   appointmentId: varchar('appointment_id', { length: 10 }).primaryKey(),
   appointmentDate: timestamp('appointment_date'),
   appointStatus: varchar('appoint_status', { length: 20 }),
+<<<<<<< HEAD
+=======
+  notes: text('notes'),
+  createdAt: timestamp('created_at').defaultNow(),
+>>>>>>> merge/sprint2/be
   requestId: varchar('request_id', { length: 10 }).references(() => serviceRequest.requestId),
 });
 
@@ -101,7 +107,11 @@ export const invoice = pgTable('Invoice', {
 export const invoiceDetail = pgTable(
   'InvoiceDetail',
   {
+<<<<<<< HEAD
     invoiceId: varchar('invoice_id', { length: 10 }).references(() => invoice.invoiceId),
+=======
+    invoiceId: varchar('invoice_id', { length: 10 }).notNull().references(() => invoice.invoiceId),
+>>>>>>> merge/sprint2/be
     details: text('details').notNull(),
     amount: decimal('amount', { precision: 10, scale: 2 }),
   },
@@ -119,7 +129,11 @@ export const supplier = pgTable('Supplier', {
 });
 
 export const purchaseOrder = pgTable('PurchaseOrder', {
+<<<<<<< HEAD
   poId: varchar('po_id', { length: 10 }).primaryKey(),
+=======
+  poId: varchar('po_id', { length: 20 }).primaryKey(),
+>>>>>>> merge/sprint2/be
   orderStatus: varchar('order_status', { length: 30 }),
   orderDate: date('order_date'),
   purchasingStaffId: varchar('purchasing_staff_id', { length: 10 }).references(
@@ -141,9 +155,16 @@ export const part = pgTable('Part', {
 export const purchaseOrderPart = pgTable(
   'PurchaseOrderPart',
   {
+<<<<<<< HEAD
     poId: varchar('po_id', { length: 10 }).references(() => purchaseOrder.poId),
     partId: varchar('part_id', { length: 10 }).references(() => part.partId),
     buyingPrice: decimal('buying_price', { precision: 10, scale: 2 }),
+=======
+    poId: varchar('po_id', { length: 20 }).references(() => purchaseOrder.poId),
+    partId: varchar('part_id', { length: 10 }).references(() => part.partId),
+    buyingPrice: decimal('buying_price', { precision: 10, scale: 2 }),
+    quantity: integer('quantity'),
+>>>>>>> merge/sprint2/be
   },
   (table) => ({
     pk: primaryKey({ columns: [table.poId, table.partId] }),
@@ -164,8 +185,13 @@ export const serviceJob = pgTable('ServiceJob', {
 export const usePart = pgTable(
   'UsePart',
   {
+<<<<<<< HEAD
     serviceId: varchar('service_id', { length: 10 }).references(() => serviceJob.serviceId),
     partId: varchar('part_id', { length: 10 }).references(() => part.partId),
+=======
+    serviceId: varchar('service_id', { length: 10 }).notNull().references(() => serviceJob.serviceId),
+    partId: varchar('part_id', { length: 10 }).notNull().references(() => part.partId),
+>>>>>>> merge/sprint2/be
     quantity: integer('quantity'),
   },
   (table) => ({
@@ -176,8 +202,13 @@ export const usePart = pgTable(
 export const assignTo = pgTable(
   'AssignTo',
   {
+<<<<<<< HEAD
     serviceId: varchar('service_id', { length: 10 }).references(() => serviceJob.serviceId),
     technicianId: varchar('technician_id', { length: 10 }).references(() => technician.employeeId),
+=======
+    serviceId: varchar('service_id', { length: 10 }).notNull().references(() => serviceJob.serviceId),
+    technicianId: varchar('technician_id', { length: 10 }).notNull().references(() => technician.employeeId),
+>>>>>>> merge/sprint2/be
   },
   (table) => ({
     pk: primaryKey({ columns: [table.serviceId, table.technicianId] }),

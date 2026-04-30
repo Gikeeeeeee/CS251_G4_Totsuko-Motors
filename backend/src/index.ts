@@ -5,6 +5,13 @@ import 'dotenv/config';
 import serviceRoutes from './routes/service/service.routes';
 import partsRoutes from './routes/parts/parts.routes';
 import authRoutes from './routes/auth/auth.routes';
+<<<<<<< HEAD
+=======
+import appointmentRoutes from './routes/appointment/appointment.routes';
+import invoiceRoutes from './routes/invoice/invoice.routes';
+import technicianRoutes from './routes/technician/technician.routes';
+import employeeRoutes from './routes/employee/employee.routes';
+>>>>>>> merge/sprint2/be
 
 const app = express();
 
@@ -20,6 +27,13 @@ app.use(cookieParser());
 app.use('/api/auth', authRoutes);
 app.use('/api/service', serviceRoutes);
 app.use('/api/parts', partsRoutes);
+<<<<<<< HEAD
+=======
+app.use('/api/appointments', appointmentRoutes);
+app.use('/api/invoices', invoiceRoutes);
+app.use('/api/technicians', technicianRoutes);
+app.use('/api/employees', employeeRoutes);
+>>>>>>> merge/sprint2/be
 
 // Health Check Route (เอาไว้ให้ FE ยิงมาเทสว่า BE ติดหรือยัง)
 app.get('/api/health', (req, res) => {

@@ -7,6 +7,13 @@ export type PurchasingPartStatus =
   | 'Waiting for delivery';
 
 export type PurchasingPartRow = {
+<<<<<<< HEAD
+=======
+  category: any;
+  unitCost: number;
+  stockQuantity: any;
+  name: any;
+>>>>>>> merge/sprint2/be
   part_id: string;
   part_name: string;
   stock_qty: number;

@@ -1,6 +1,10 @@
 import { randomUUID } from 'crypto';
 import {
   createServiceJobRecord,
+<<<<<<< HEAD
+=======
+  findServiceJobDetailById,
+>>>>>>> merge/sprint2/be
   findServiceRequestById,
   updateServiceJobRecord,
   UpdateServiceJobRecord,
@@ -75,6 +79,19 @@ export async function createServiceJobForRequest(requestId: string, body: Create
   });
 }
 
+<<<<<<< HEAD
+=======
+export async function getServiceJobById(serviceId: string) {
+  const serviceJob = await findServiceJobDetailById(serviceId);
+
+  if (!serviceJob) {
+    throw new Error('Service job not found');
+  }
+
+  return serviceJob;
+}
+
+>>>>>>> merge/sprint2/be
 export async function updateServiceJobById(serviceId: string, body: UpdateServiceJobBody) {
   const updates: UpdateServiceJobRecord = {};
 

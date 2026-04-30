@@ -1,6 +1,10 @@
 import { Request, Response } from 'express';
 import {
   createServiceJobForRequest,
+<<<<<<< HEAD
+=======
+  getServiceJobById,
+>>>>>>> merge/sprint2/be
   updateServiceJobById,
 } from '../../services/service/service-job.service';
 
@@ -19,6 +23,24 @@ export async function createServiceJob(req: Request, res: Response) {
   }
 }
 
+<<<<<<< HEAD
+=======
+export async function getServiceJob(req: Request, res: Response) {
+  try {
+    const data = await getServiceJobById(req.params.id);
+    res.json({
+      message: 'Service job fetched successfully',
+      data,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to fetch service job';
+    const statusCode = message.includes('not found') ? 404 : 500;
+
+    res.status(statusCode).json({ error: message });
+  }
+}
+
+>>>>>>> merge/sprint2/be
 export async function updateServiceJob(req: Request, res: Response) {
   try {
     const data = await updateServiceJobById(req.params.id, req.body);

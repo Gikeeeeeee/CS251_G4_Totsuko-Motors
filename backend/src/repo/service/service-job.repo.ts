@@ -35,6 +35,44 @@ export async function findServiceRequestById(requestId: string) {
   return result.rows[0];
 }
 
+<<<<<<< HEAD
+=======
+export async function findServiceJobDetailById(serviceId: string) {
+  const result = await pool.query(
+    `
+      SELECT
+        sj.service_id,
+        NULL::text AS service_type,
+        sj.start_time,
+        sj.job_status AS service_status,
+        sj.labor_cost,
+        sj.end_time,
+        sj.service_details,
+        sj.request_id,
+        sr.request_status,
+        sr.problem_description,
+        sr.odometer,
+        c.customer_id,
+        c.name AS customer_name,
+        c.phone AS customer_phone,
+        v.vehicle_id,
+        v.brand,
+        v.model,
+        v.plate_number
+      FROM "ServiceJob" sj
+      LEFT JOIN "ServiceRequest" sr ON sr.request_id = sj.request_id
+      LEFT JOIN "Customer" c ON c.customer_id = sr.customer_id
+      LEFT JOIN "Vehicle" v ON v.vehicle_id = sr.vehicle_id
+      WHERE sj.service_id = $1
+      LIMIT 1
+    `,
+    [serviceId],
+  );
+
+  return result.rows[0];
+}
+
+>>>>>>> merge/sprint2/be
 export async function createServiceJobRecord(data: CreateServiceJobRecord) {
   const result = await pool.query(
     `
