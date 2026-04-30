@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import {
   createServiceJobForRequest,
+  getServiceJobById,
   updateServiceJobById,
 } from '../../services/service/service-job.service';
 
@@ -13,6 +14,21 @@ export async function createServiceJob(req: Request, res: Response) {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to create service job';
+    const statusCode = message.includes('not found') ? 404 : 500;
+
+    res.status(statusCode).json({ error: message });
+  }
+}
+
+export async function getServiceJob(req: Request, res: Response) {
+  try {
+    const data = await getServiceJobById(req.params.id);
+    res.json({
+      message: 'Service job fetched successfully',
+      data,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to fetch service job';
     const statusCode = message.includes('not found') ? 404 : 500;
 
     res.status(statusCode).json({ error: message });
