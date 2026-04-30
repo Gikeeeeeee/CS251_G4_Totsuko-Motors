@@ -35,8 +35,6 @@ export async function findServiceRequestById(requestId: string) {
   return result.rows[0];
 }
 
-<<<<<<< HEAD
-=======
 export async function findServiceJobDetailById(serviceId: string) {
   const result = await pool.query(
     `
@@ -72,7 +70,6 @@ export async function findServiceJobDetailById(serviceId: string) {
   return result.rows[0];
 }
 
->>>>>>> merge/sprint2/be
 export async function createServiceJobRecord(data: CreateServiceJobRecord) {
   const result = await pool.query(
     `

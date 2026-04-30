@@ -1,32 +1,3 @@
-<<<<<<< HEAD
-import { hashPassword, comparePassword } from '../../utils/password';
-import { generateToken, verifyRefreshToken } from '../../utils/jwt';
-import {
-  createUser,
-  findExistingUser,
-  findUserByEmail,
-  findUserByUserId,
-} from '../../repo/auth/auth.repo';
-
-export const loginUser = async (email: string, password: string) => {
-  const user = await findUserByEmail(email);
-
-  if (!user) {
-    throw new Error('User not found');
-  }
-
-  const isPasswordValid = await comparePassword(password, user.password);
-
-  if (!isPasswordValid) {
-    throw new Error('Invalid password');
-  }
-
-  return {
-    userId: user.userId,
-    email: user.email,
-    username: user.username,
-    role: user.role,
-=======
 import { db } from '../../db';
 import { userAccount, employee, technician, clerk, purchasingStaff } from '../../db/schema';
 import { eq, or } from 'drizzle-orm';
@@ -74,46 +45,10 @@ export const loginUser = async (emailOrUsername: string, password: string) => {
     phone: user[0].phone,
     role: user[0].role,
     hireDate: user[0].hireDate,
->>>>>>> merge/sprint2/be
   };
 };
 
 export const registerUser = async (
-<<<<<<< HEAD
-  email: string,
-  username: string,
-  password: string,
-  userId: string,
-) => {
-  const existingUser = await findExistingUser(email, username, userId);
-
-  if (existingUser) {
-    if (existingUser.email === email) {
-      throw new Error('Email already exists');
-    }
-    if (existingUser.username === username) {
-      throw new Error('Username already exists');
-    }
-    if (existingUser.userId === userId) {
-      throw new Error('User ID already exists');
-    }
-  }
-
-  const hashedPassword = await hashPassword(password);
-
-  const newUser = await createUser({
-    userId,
-    email,
-    username,
-    password: hashedPassword,
-  });
-
-  return {
-    userId: newUser.userId,
-    email: newUser.email,
-    username: newUser.username,
-    role: newUser.role,
-=======
   email: string, 
   username: string, 
   password: string, 
@@ -191,7 +126,6 @@ export const registerUser = async (
     phone,
     role,
     hireDate: finalHireDate,
->>>>>>> merge/sprint2/be
   };
 };
 
@@ -199,15 +133,6 @@ export const refreshAccessToken = async (refreshToken: string) => {
   const decoded = verifyRefreshToken(refreshToken);
 
   if (!decoded) {
-<<<<<<< HEAD
-    throw new Error('Invalid or expired refresh token');
-  }
-
-  const user = await findUserByUserId(decoded.userId);
-
-  if (!user) {
-    throw new Error('User not found');
-=======
     throw new Error('Refresh token ไม่ถูกต้องหรือหมดอายุ');
   }
 
@@ -215,7 +140,6 @@ export const refreshAccessToken = async (refreshToken: string) => {
 
   if (user.length === 0) {
     throw new Error('ไม่พบผู้ใช้งาน');
->>>>>>> merge/sprint2/be
   }
 
   const newToken = generateToken(decoded.userId);
