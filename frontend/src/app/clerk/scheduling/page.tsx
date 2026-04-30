@@ -78,10 +78,6 @@ const THAI_MONTHS_FULL = [
   'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม',
 ];
 
-const THAI_WEEKDAYS_FULL = [
-  'อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์',
-];
-
 type CalendarCell = {
   day: number;
   date: Date;
@@ -135,13 +131,15 @@ export default function SchedulingPage() {
   const [province, setProvince] = useState('กรุงเทพมหานคร');
   const [appointPrefix, setAppointPrefix] = useState('8:00');
   const [appointNumber, setAppointNumber] = useState('8:30');
-  const [appointDate, setAppointDate] = useState('10 / 03 / 2025');
 
   const [viewYear, setViewYear] = useState(() => new Date().getFullYear());
   const [viewMonth, setViewMonth] = useState(() => new Date().getMonth());
   const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
 
   const calendarDates = buildCalendarDates(viewYear, viewMonth, selectedDate);
+
+  const formatAppointDate = (d: Date) =>
+    `${d.getDate()} / ${THAI_MONTHS_FULL[d.getMonth()]} / ${d.getFullYear() + 543}`;
 
   const handlePrevMonth = () => {
     if (viewMonth === 0) {
@@ -181,7 +179,7 @@ export default function SchedulingPage() {
         <div className="bg-white rounded-2xl border border-gray-100 shadow-[0_1px_3px_rgba(0,0,0,0.05)] p-8 mb-8">
           <div className="flex items-center justify-center mb-6">
             <h2 className="text-xl font-semibold text-[#002446]">
-              วัน&nbsp;&nbsp;{THAI_WEEKDAYS_FULL[selectedDate.getDay()]} {selectedDate.getDate()} {THAI_MONTHS_FULL[selectedDate.getMonth()]}&nbsp;&nbsp;{selectedDate.getFullYear() + 543}
+              {THAI_MONTHS_FULL[viewMonth]}&nbsp;&nbsp;{viewYear + 543}
             </h2>
           </div>
 
@@ -323,9 +321,9 @@ export default function SchedulingPage() {
                 </div>
                 <input
                   type="text"
-                  value={appointDate}
-                  onChange={(e) => setAppointDate(e.target.value)}
-                  className="flex-1 px-4 py-2 border border-gray-200 rounded-md text-sm text-[#0F172A] outline-none focus:ring-1 focus:ring-blue-400 text-center"
+                  value={formatAppointDate(selectedDate)}
+                  readOnly
+                  className="flex-1 px-4 py-2 border border-gray-200 rounded-md text-sm text-[#0F172A] outline-none text-center bg-gray-50 cursor-default"
                 />
               </div>
             </div>
