@@ -1,0 +1,81 @@
+### 0. Pre-requisite: Create Service Request (Run this first to get a request_id!)
+POST http://localhost:3000/api/service/service-request/create
+Content-Type: application/json
+
+{
+    "name": "Jane Doe",
+    "plate_number": "XYZ-9876",
+    "vehicle_type": "SUV",
+    "problem_description": "Engine making weird noises"
+}
+
+### 1. Step 1: Create App 1 (SCHEDULED)
+# -> Copy the `requestId` from Step 0 and replace "REPLACE_WITH_REQUEST_ID"
+POST http://localhost:3000/api/appointments
+Content-Type: application/json
+
+{
+    "request_id": "R5F0972A8B",
+    "appointment_date": "2026-06-01T10:00:00Z"
+}
+
+### -> Copy the `appointmentId` of App 1 from the response above and replace "APP_1_ID" in Step 2 and Step 4
+
+### 2. Step 2: Update App 1 to POSTPONED
+# -> This will return the newly created App 2 (which is SCHEDULED).
+PUT http://localhost:3000/api/appointments/AFD7637AE5
+Content-Type: application/json
+
+{
+    "status": "POSTPONED",
+    "appointment_date": "2026-06-05T10:00:00Z",
+    "notes": "Customer requested a later date."
+}
+
+### -> Copy the `appointmentId` of App 2 from the response above and replace "APP_2_ID" in Step 3
+
+### 3. Step 3: Update App 2 to POSTPONED
+# -> This will return the newly created App 3 (which is SCHEDULED).
+PUT http://localhost:3000/api/appointments/AAF065F73A
+Content-Type: application/json
+
+{
+    "status": "POSTPONED",
+    "appointment_date": "2026-06-10T14:00:00Z",
+    "notes": "Mechanic called in sick, postponed again."
+}
+
+### -> Copy the `appointmentId` of App 3 from the response above and replace "APP_3_ID" in Step 5 and Step 6
+
+### 4. Step 4: Update App 1 (POSTPONED) to CANCELLED
+# -> Tests Terminal State Block for POSTPONED. MUST RETURN 400 Bad Request!
+PUT http://localhost:3000/api/appointments/AFD7637AE5
+Content-Type: application/json
+
+{
+    "status": "CANCELLED",
+    "notes": "Attempting to cancel an already postponed appointment (Should fail)."
+}
+
+### 5. Step 5: Finalize App 3 to COMPLETED
+# -> Completes the latest appointment in the chain.
+PUT http://localhost:3000/api/appointments/A0CAACD916
+Content-Type: application/json
+
+{
+    "status": "COMPLETED",
+    "notes": "Service successfully finished!"
+}
+
+### 6. Step 6: Attempt to update App 3 (COMPLETED)
+# -> Tests Terminal State Block. MUST RETURN 400 Bad Request!
+PUT http://localhost:3000/api/appointments/A0CAACD916
+Content-Type: application/json
+
+{
+    "status": "CANCELLED"
+}
+
+### 7. GET the entire chain to verify sorting by created_at DESC
+# -> Should show App 3 first, then App 2, then App 1
+GET http://localhost:3000/api/appointments/request/R5F0972A8B

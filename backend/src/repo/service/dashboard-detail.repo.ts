@@ -8,10 +8,10 @@ export async function findServiceRequests(page: number, limit: number, status?: 
 
   const data = await db
     .select({
-      serviceRequest,
-      customer,
-      vehicle,
-      employee,
+      serviceRequest: serviceRequest, 
+      customer: customer,
+      vehicle: vehicle,
+      employee: employee
     })
     .from(serviceRequest)
     .leftJoin(customer, eq(serviceRequest.customerId, customer.customerId))
@@ -27,5 +27,8 @@ export async function findServiceRequests(page: number, limit: number, status?: 
     .from(serviceRequest)
     .where(filter);
 
-  return { data, totalItems: Number(totalResult[0]?.count || 0) };
+  return { 
+    data, 
+    totalItems: Number(totalResult[0]?.count || 0) 
+  };
 }

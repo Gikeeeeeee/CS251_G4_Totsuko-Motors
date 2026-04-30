@@ -30,6 +30,7 @@ export async function findExistingUser(email: string, username: string, userId: 
 
 export async function createUser(data: {
   userId: string;
+  name: string;
   email: string;
   username: string;
   password: string;

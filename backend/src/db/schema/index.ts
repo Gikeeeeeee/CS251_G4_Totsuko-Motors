@@ -13,10 +13,11 @@ import { relations } from 'drizzle-orm';
 
 export const userAccount = pgTable('UserAccount', {
   userId: varchar('user_id', { length: 10 }).primaryKey(),
+  name: varchar('name', { length: 100 }).notNull(),
   email: varchar('email', { length: 100 }).unique().notNull(),
   username: varchar('username', { length: 50 }).unique().notNull(),
   password: varchar('password', { length: 255 }).notNull(),
-  role: varchar('role', { length: 20 }),
+  role: varchar('role', { length: 20 }).notNull(),
   status: varchar('status', { length: 20 }).default('Active'),
 });
 
@@ -86,6 +87,8 @@ export const appointment = pgTable('Appointment', {
   appointmentId: varchar('appointment_id', { length: 10 }).primaryKey(),
   appointmentDate: timestamp('appointment_date'),
   appointStatus: varchar('appoint_status', { length: 20 }),
+  notes: text('notes'),
+  createdAt: timestamp('created_at').defaultNow(),
   requestId: varchar('request_id', { length: 10 }).references(() => serviceRequest.requestId),
 });
 
@@ -102,7 +105,7 @@ export const invoice = pgTable('Invoice', {
 export const invoiceDetail = pgTable(
   'InvoiceDetail',
   {
-    invoiceId: varchar('invoice_id', { length: 10 }).references(() => invoice.invoiceId),
+    invoiceId: varchar('invoice_id', { length: 10 }).notNull().references(() => invoice.invoiceId),
     details: text('details').notNull(),
     amount: decimal('amount', { precision: 10, scale: 2 }),
   },
@@ -120,7 +123,7 @@ export const supplier = pgTable('Supplier', {
 });
 
 export const purchaseOrder = pgTable('PurchaseOrder', {
-  poId: varchar('po_id', { length: 10 }).primaryKey(),
+  poId: varchar('po_id', { length: 20 }).primaryKey(),
   orderStatus: varchar('order_status', { length: 30 }),
   orderDate: date('order_date'),
   purchasingStaffId: varchar('purchasing_staff_id', { length: 10 }).references(
@@ -142,9 +145,10 @@ export const part = pgTable('Part', {
 export const purchaseOrderPart = pgTable(
   'PurchaseOrderPart',
   {
-    poId: varchar('po_id', { length: 10 }).references(() => purchaseOrder.poId),
+    poId: varchar('po_id', { length: 20 }).references(() => purchaseOrder.poId),
     partId: varchar('part_id', { length: 10 }).references(() => part.partId),
     buyingPrice: decimal('buying_price', { precision: 10, scale: 2 }),
+    quantity: integer('quantity'),
   },
   (table) => ({
     pk: primaryKey({ columns: [table.poId, table.partId] }),
@@ -165,8 +169,8 @@ export const serviceJob = pgTable('ServiceJob', {
 export const usePart = pgTable(
   'UsePart',
   {
-    serviceId: varchar('service_id', { length: 10 }).references(() => serviceJob.serviceId),
-    partId: varchar('part_id', { length: 10 }).references(() => part.partId),
+    serviceId: varchar('service_id', { length: 10 }).notNull().references(() => serviceJob.serviceId),
+    partId: varchar('part_id', { length: 10 }).notNull().references(() => part.partId),
     quantity: integer('quantity'),
   },
   (table) => ({
@@ -177,8 +181,8 @@ export const usePart = pgTable(
 export const assignTo = pgTable(
   'AssignTo',
   {
-    serviceId: varchar('service_id', { length: 10 }).references(() => serviceJob.serviceId),
-    technicianId: varchar('technician_id', { length: 10 }).references(() => technician.employeeId),
+    serviceId: varchar('service_id', { length: 10 }).notNull().references(() => serviceJob.serviceId),
+    technicianId: varchar('technician_id', { length: 10 }).notNull().references(() => technician.employeeId),
   },
   (table) => ({
     pk: primaryKey({ columns: [table.serviceId, table.technicianId] }),
