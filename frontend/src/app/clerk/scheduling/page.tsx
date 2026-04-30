@@ -73,16 +73,61 @@ const APPOINTMENTS: Appointment[] = [
 
 const CALENDAR_WEEKDAYS = ['SUN', 'MON', 'TUE', 'WED', 'THUR', 'FRI', 'SAT'];
 
-const CALENDAR_DATES: { day: number; muted?: boolean; selected?: boolean; today?: boolean }[] = [
-  { day: 29, muted: true }, { day: 30, muted: true }, { day: 31, muted: true },
-  { day: 1 }, { day: 2 }, { day: 3 }, { day: 4 },
-  { day: 5 }, { day: 6 }, { day: 7 }, { day: 8 },
-  { day: 9, selected: true }, { day: 10, today: true }, { day: 11 },
-  { day: 12 }, { day: 13 }, { day: 14 }, { day: 15 }, { day: 16 }, { day: 17 }, { day: 18 },
-  { day: 19 }, { day: 20 }, { day: 21 }, { day: 22 }, { day: 23 }, { day: 24 }, { day: 25 },
-  { day: 26 }, { day: 27 }, { day: 28 }, { day: 29 }, { day: 30 },
-  { day: 1, muted: true }, { day: 2, muted: true },
+const THAI_MONTHS_FULL = [
+  'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+  'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม',
 ];
+
+const THAI_WEEKDAYS_FULL = [
+  'อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์',
+];
+
+type CalendarCell = {
+  day: number;
+  date: Date;
+  muted?: boolean;
+  selected?: boolean;
+  today?: boolean;
+};
+
+function buildCalendarDates(year: number, month: number, selectedDate: Date): CalendarCell[] {
+  const firstDayOfWeek = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const daysInPrevMonth = new Date(year, month, 0).getDate();
+  const today = new Date();
+
+  const cells: CalendarCell[] = [];
+
+  // เติมวันท้ายเดือนก่อนหน้า ให้ครบสัปดาห์แรก
+  for (let i = firstDayOfWeek - 1; i >= 0; i--) {
+    const day = daysInPrevMonth - i;
+    cells.push({ day, date: new Date(year, month - 1, day), muted: true });
+  }
+
+  // เติมวันของเดือนปัจจุบัน
+  for (let day = 1; day <= daysInMonth; day++) {
+    cells.push({
+      day,
+      date: new Date(year, month, day),
+      selected:
+        selectedDate.getFullYear() === year &&
+        selectedDate.getMonth() === month &&
+        selectedDate.getDate() === day,
+      today:
+        today.getFullYear() === year &&
+        today.getMonth() === month &&
+        today.getDate() === day,
+    });
+  }
+
+  // เติมวันต้นเดือนถัดไป ให้แถวสุดท้ายครบ 7 ช่อง
+  const trailing = (7 - (cells.length % 7)) % 7;
+  for (let day = 1; day <= trailing; day++) {
+    cells.push({ day, date: new Date(year, month + 1, day), muted: true });
+  }
+
+  return cells;
+}
 
 export default function SchedulingPage() {
   const [platePrefix, setPlatePrefix] = useState('4ขฌ');
@@ -91,6 +136,38 @@ export default function SchedulingPage() {
   const [appointPrefix, setAppointPrefix] = useState('8:00');
   const [appointNumber, setAppointNumber] = useState('8:30');
   const [appointDate, setAppointDate] = useState('10 / 03 / 2025');
+
+  const [viewYear, setViewYear] = useState(() => new Date().getFullYear());
+  const [viewMonth, setViewMonth] = useState(() => new Date().getMonth());
+  const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
+
+  const calendarDates = buildCalendarDates(viewYear, viewMonth, selectedDate);
+
+  const handlePrevMonth = () => {
+    if (viewMonth === 0) {
+      setViewMonth(11);
+      setViewYear((y) => y - 1);
+    } else {
+      setViewMonth((m) => m - 1);
+    }
+  };
+
+  const handleNextMonth = () => {
+    if (viewMonth === 11) {
+      setViewMonth(0);
+      setViewYear((y) => y + 1);
+    } else {
+      setViewMonth((m) => m + 1);
+    }
+  };
+
+  const handleSelectDate = (cell: CalendarCell) => {
+    setSelectedDate(cell.date);
+    if (cell.muted) {
+      setViewYear(cell.date.getFullYear());
+      setViewMonth(cell.date.getMonth());
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#F3FAFF]">
@@ -104,13 +181,14 @@ export default function SchedulingPage() {
         <div className="bg-white rounded-2xl border border-gray-100 shadow-[0_1px_3px_rgba(0,0,0,0.05)] p-8 mb-8">
           <div className="flex items-center justify-center mb-6">
             <h2 className="text-xl font-semibold text-[#002446]">
-              วัน&nbsp;&nbsp;ศุกร์ 9 มีนาคม&nbsp;&nbsp;2567
+              วัน&nbsp;&nbsp;{THAI_WEEKDAYS_FULL[selectedDate.getDay()]} {selectedDate.getDate()} {THAI_MONTHS_FULL[selectedDate.getMonth()]}&nbsp;&nbsp;{selectedDate.getFullYear() + 543}
             </h2>
           </div>
 
           <div className="flex items-center gap-4">
             <button
               type="button"
+              onClick={handlePrevMonth}
               className="w-9 h-9 flex items-center justify-center rounded-full text-[#94A3B8] hover:bg-gray-100 transition-colors shrink-0"
               aria-label="Previous month"
             >
@@ -129,16 +207,21 @@ export default function SchedulingPage() {
               </div>
 
               <div className="grid grid-cols-7 gap-y-2">
-                {CALENDAR_DATES.map((d, idx) => {
-                  const base = 'mx-auto w-10 h-10 flex items-center justify-center rounded-full text-base font-medium';
-                  let cls = `${base} text-[#0F172A]`;
-                  if (d.muted) cls = `${base} text-gray-300`;
+                {calendarDates.map((d, idx) => {
+                  const base = 'mx-auto w-10 h-10 flex items-center justify-center rounded-full text-base font-medium cursor-pointer';
+                  let cls = `${base} text-[#0F172A] hover:bg-gray-100`;
+                  if (d.muted) cls = `${base} text-gray-300 hover:bg-gray-100`;
                   if (d.selected) cls = `${base} bg-[#BFE2F7] text-[#002446] font-semibold`;
-                  if (d.today) cls = `${base} ring-2 ring-[#0EA5E9] text-[#002446] font-semibold`;
+                  if (d.today && !d.selected) cls = `${base} ring-2 ring-[#0EA5E9] text-[#002446] font-semibold hover:bg-gray-100`;
                   return (
-                    <div key={idx} className={cls}>
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => handleSelectDate(d)}
+                      className={cls}
+                    >
                       {d.day}
-                    </div>
+                    </button>
                   );
                 })}
               </div>
@@ -146,6 +229,7 @@ export default function SchedulingPage() {
 
             <button
               type="button"
+              onClick={handleNextMonth}
               className="w-9 h-9 flex items-center justify-center rounded-full text-[#94A3B8] hover:bg-gray-100 transition-colors shrink-0"
               aria-label="Next month"
             >
