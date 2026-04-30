@@ -7,21 +7,16 @@ import {
   updateServiceJob,
 } from '../../controllers/service/service-job.controller';
 import { createServiceController } from '../../controllers/service/service-request.controller';
-<<<<<<< HEAD
 import { getTechnicianRequests } from '../../controllers/service/technician-requests.controller';
-
-=======
-import { 
+import {
   getAvailableParts,
-  getPurchaseOrders, 
-  getPurchaseOrderParts, 
-  updateOrderStatus,  
+  getPurchaseOrders,
+  getPurchaseOrderParts,
+  updateOrderStatus,
   postPurchaseOrder,
-  getSuppliers
+  getSuppliers,
 } from '../../controllers/service/purchase-order.controller';
-
 import { authMiddleware } from '../../middlewares/auth.middleware';
->>>>>>> merge/sprint2/be
 
 const router = Router();
 
