@@ -35,6 +35,14 @@ const slotLabel = (slot: number) => {
   return `${h}:${mm === 0 ? '00' : mm}`;
 };
 
+// 8:00 ถึง 18:00 ห่างกัน 30 นาที (รวม 21 ตัวเลือก)
+const APPOINTMENT_TIME_OPTIONS = Array.from({ length: 21 }, (_, i) => {
+  const minutes = 8 * 60 + i * 30;
+  const h = Math.floor(minutes / 60);
+  const mm = minutes % 60;
+  return `${h}:${mm === 0 ? '00' : mm}`;
+});
+
 const APPOINTMENTS: Appointment[] = [
   // SUN
   { day: 0, startSlot: 0,  endSlot: 4,  plate: '4ขฌ 6931', province: 'กรุงเทพ' },
@@ -80,8 +88,8 @@ export default function SchedulingPage() {
   const [platePrefix, setPlatePrefix] = useState('4ขฌ');
   const [plateNumber, setPlateNumber] = useState('6931');
   const [province, setProvince] = useState('กรุงเทพมหานคร');
-  const [appointPrefix, setAppointPrefix] = useState('4ขฌ');
-  const [appointNumber, setAppointNumber] = useState('6931');
+  const [appointPrefix, setAppointPrefix] = useState('8:00');
+  const [appointNumber, setAppointNumber] = useState('8:30');
   const [appointDate, setAppointDate] = useState('10 / 03 / 2025');
 
   return (
@@ -190,19 +198,45 @@ export default function SchedulingPage() {
             <div>
               <label className="block text-xs font-semibold text-[#0F172A] mb-2">Appointment (Date And Time)</label>
               <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  value={appointPrefix}
-                  onChange={(e) => setAppointPrefix(e.target.value)}
-                  className="w-16 px-3 py-2 bg-[#F1F5F9] rounded-md text-sm text-[#64748B] outline-none focus:ring-1 focus:ring-blue-400"
-                />
+                <div className="relative">
+                  <select
+                    value={appointPrefix}
+                    onChange={(e) => setAppointPrefix(e.target.value)}
+                    className="w-24 appearance-none px-3 py-2 pr-8 bg-[#F1F5F9] rounded-md text-sm text-[#64748B] outline-none focus:ring-1 focus:ring-blue-400 cursor-pointer"
+                  >
+                    {APPOINTMENT_TIME_OPTIONS.map((t) => (
+                      <option key={t} value={t}>
+                        {t}
+                      </option>
+                    ))}
+                  </select>
+                  <svg
+                    className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-[#64748B]"
+                    width="12" height="8" viewBox="0 0 12 8" fill="none" xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path d="M1 1L6 6L11 1" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
                 <span className="text-[#64748B]">-</span>
-                <input
-                  type="text"
-                  value={appointNumber}
-                  onChange={(e) => setAppointNumber(e.target.value)}
-                  className="w-20 px-3 py-2 bg-[#F1F5F9] rounded-md text-sm text-[#64748B] outline-none focus:ring-1 focus:ring-blue-400"
-                />
+                <div className="relative">
+                  <select
+                    value={appointNumber}
+                    onChange={(e) => setAppointNumber(e.target.value)}
+                    className="w-24 appearance-none px-3 py-2 pr-8 bg-[#F1F5F9] rounded-md text-sm text-[#64748B] outline-none focus:ring-1 focus:ring-blue-400 cursor-pointer"
+                  >
+                    {APPOINTMENT_TIME_OPTIONS.map((t) => (
+                      <option key={t} value={t}>
+                        {t}
+                      </option>
+                    ))}
+                  </select>
+                  <svg
+                    className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-[#64748B]"
+                    width="12" height="8" viewBox="0 0 12 8" fill="none" xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path d="M1 1L6 6L11 1" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
                 <input
                   type="text"
                   value={appointDate}
