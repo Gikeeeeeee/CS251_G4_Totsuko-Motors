@@ -1,0 +1,19 @@
+import styles from './TopNavPS.module.css'
+
+export default function TopNavPS() {
+  return (
+    <header className={styles.topNav}>
+      <div className={styles.spacer}></div>
+      <div className={styles.userSection}>
+        <div className={styles.divider}></div>
+        <div className={styles.userInfo}>
+          <div className={styles.userText}>
+            <div className={styles.userName}>JOHNDO</div>
+            <div className={styles.userRole}>Purchasing Staff</div>
+          </div>
+          <div className={styles.avatar}></div>
+        </div>
+      </div>
+    </header>
+  )
+}
