@@ -150,7 +150,11 @@ export async function quickCreateAppointmentFromForm(body: QuickCreateAppointmen
   if (isNaN(appointmentDateTime.getTime())) {
     throw new Error('Invalid appointment date/time');
   }
-  if (appointmentDateTime < new Date()) {
+
+  // เช็คเฉพาะวัน ไม่เช็คเวลา — อนุญาตให้นัดในวันนี้ได้ทุกช่วงเวลา
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  if (appointmentDateTime < startOfToday) {
     throw new Error('appointment_date cannot be in the past');
   }
 

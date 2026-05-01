@@ -8,7 +8,8 @@ import apiClient from '@/services/apiClient';
 
 type Appointment = {
   id: string;
-  day: number;       // 0=SUN ... 6=SAT
+  date: Date;        // วันเต็มของนัดหมาย — ใช้กรองสัปดาห์
+  day: number;       // 0=SUN ... 6=SAT (derive จาก date — ใช้วาง column ในตาราง)
   startSlot: number; // 0..19  (8:00 = slot 0, 30-min steps)
   endSlot: number;   // exclusive
   plate: string;
@@ -19,6 +20,19 @@ type Appointment = {
 function timeToSlot(time: string): number {
   const [h, m] = time.split(':').map(Number);
   return (h - 8) * 2 + (m === 30 ? 1 : 0);
+}
+
+// ได้วันอาทิตย์ของสัปดาห์ที่วันนี้อยู่ (ตัด time ออก)
+function getWeekStart(d: Date): Date {
+  const result = new Date(d);
+  result.setHours(0, 0, 0, 0);
+  result.setDate(result.getDate() - result.getDay());
+  return result;
+}
+
+// เช็คว่า a, b อยู่สัปดาห์เดียวกันหรือไม่
+function isSameWeek(a: Date, b: Date): boolean {
+  return getWeekStart(a).getTime() === getWeekStart(b).getTime();
 }
 
 const DAYS = ['SUN', 'MON', 'TUE', 'WED', 'THUR', 'FRI', 'SAT'];
@@ -134,14 +148,18 @@ export default function SchedulingPage() {
         };
         const cards: Appointment[] = res.data.data
           .filter((a: ApptFromApi) => a.startTime && a.endTime)
-          .map((a: ApptFromApi) => ({
-            id: a.appointmentId,
-            day: new Date(a.appointmentDate).getDay(),
-            startSlot: timeToSlot(a.startTime),
-            endSlot: timeToSlot(a.endTime),
-            plate: a.plate,
-            province: a.province,
-          }));
+          .map((a: ApptFromApi) => {
+            const apptDate = new Date(a.appointmentDate);
+            return {
+              id: a.appointmentId,
+              date: apptDate,
+              day: apptDate.getDay(),
+              startSlot: timeToSlot(a.startTime),
+              endSlot: timeToSlot(a.endTime),
+              plate: a.plate,
+              province: a.province,
+            };
+          });
         setAppointments(cards);
       } catch (err) {
         console.error('Load appointments failed:', err);
@@ -185,6 +203,7 @@ export default function SchedulingPage() {
         ...prev,
         {
           id: realId,
+          date: new Date(selectedDate),
           day: selectedDate.getDay(),
           startSlot,
           endSlot,
@@ -459,8 +478,8 @@ export default function SchedulingPage() {
               ))
             )}
 
-            {/* Appointment blocks (overlay) */}
-            {appointments.map((a) => (
+            {/* Appointment blocks (overlay) — กรองเฉพาะสัปดาห์เดียวกับ selectedDate */}
+            {appointments.filter((a) => isSameWeek(a.date, selectedDate)).map((a) => (
               <div
                 key={a.id}
                 className="p-1"
