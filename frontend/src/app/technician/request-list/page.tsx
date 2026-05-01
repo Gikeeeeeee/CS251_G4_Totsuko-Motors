@@ -63,6 +63,17 @@ export default function TechnicianPage() {
     const indexOfFirstItem = (currentPage - 1) * itemsPerPage + 1;
     const indexOfLastItem = Math.min(currentPage * itemsPerPage, totalItems);
 
+    // กรองรายการตามคำค้น — ค้นทั้งทะเบียน, ชื่อลูกค้า, requestId (case-insensitive)
+    const filteredRequests = requests.filter((r) => {
+        const q = searchTerm.trim().toLowerCase();
+        if (!q) return true;
+        return (
+            r.plateNumber.toLowerCase().includes(q) ||
+            r.customerName.toLowerCase().includes(q) ||
+            r.requestId.toLowerCase().includes(q)
+        );
+    });
+
     // Function จัดการเมื่อคลิกปุ่ม Receive
     const handleReceive = (requestId: string) => {
         console.log('Receive request ID:', requestId);
@@ -129,11 +140,12 @@ export default function TechnicianPage() {
                                 <div className="relative">
                                     <input
                                         type="text"
-                                        placeholder="Search id / vehicle owner or plate..."
+                                        placeholder="Search vehicle owner or plate..."
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)}
                                         className="w-[533px] px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     />
+                                    
                                     {/* Search Icon */}
                                     <svg
                                         className="absolute left-3 top-2.5 w-5 h-5 text-gray-400"
@@ -143,12 +155,16 @@ export default function TechnicianPage() {
                                     >
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                     </svg>
+
+                                    <button>
+                                        <span className="sr-only">Search</span>
+                                    </button>
                                 </div>
 
-                                {/* Filter Button */}
+                                {/* Filter Button
                                 <button className="flex px-4 py-2 bg-[#D5ECF8] text-[#002446] rounded-lg hover:bg-blue-100 transition-colors font-medium">
                                     Filter by Status
-                                </button>
+                                </button> */}
                         </div>
 
                         {/* Table */}
@@ -176,7 +192,14 @@ export default function TechnicianPage() {
 
                                 {/* Table Body */}
                                 <tbody className="bg-white divide-y divide-gray-200">
-                                    {requests.map((request) => (
+                                    {filteredRequests.length === 0 && (
+                                        <tr>
+                                            <td colSpan={5} className="px-6 py-8 text-center text-sm text-gray-500">
+                                                ไม่พบข้อมูลที่ตรงกับ &quot;{searchTerm}&quot;
+                                            </td>
+                                        </tr>
+                                    )}
+                                    {filteredRequests.map((request) => (
                                         <tr key={request.requestId} className="hover:bg-gray-50 transition-colors">
 
                                             {/* คอลัมน์ 1: Vehicle Plate / Service ID */}
