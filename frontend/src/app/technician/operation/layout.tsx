@@ -1,13 +1,13 @@
-import SidebarTech from '@/components/Sidebar'
-import TopNavTech from '@/components/TopNav'
+import SidebarTech from '@/components/SidebarTech'
+import TopNavTech from '@/components/TopNavTech'
 
 export default function OperationLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ display: 'flex', background: '#F3FAFF', minHeight: '100vh' }}>
+    <div style={{ background: '#F3FAFF', minHeight: '100vh' }}>
       <SidebarTech />
-      <div style={{ flex: 1 }}>
+      <div style={{ marginLeft: '256px' }}>
         <TopNavTech />
-        <main style={{ padding: '76px 28px 48px 230px', zoom: 1.25 }}>
+        <main style={{ padding: '96px 32px 48px', zoom: 1.25 }}>
           {children}
         </main>
       </div>
