@@ -21,6 +21,7 @@ export default function PurchasingPartPage() {
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [parts, setParts] = useState<Part[]>([]);
+  const [orderQtys, setOrderQtys] = useState<Record<string, number>>({});
   const [stats, setStats] = useState({
     all: 0,
     inventory: 0,
@@ -143,12 +144,9 @@ export default function PurchasingPartPage() {
       }
     }
     
-    const qtyStr = window.prompt(`Enter quantity to order for ${part.part_name}:`, "10");
-    if (!qtyStr) return;
-    
-    const qty = parseInt(qtyStr, 10);
-    if (isNaN(qty) || qty <= 0) {
-      alert('Invalid quantity');
+    const qty = orderQtys[part.part_id];
+    if (!qty || qty <= 0) {
+      alert('Please enter a valid quantity first.');
       return;
     }
 
@@ -168,10 +166,22 @@ export default function PurchasingPartPage() {
         }]
       });
       alert('Order placed successfully!');
+      
+      // เคลียร์ค่าในช่อง Input หลังจากสั่งซื้อสำเร็จ
+      setOrderQtys(prev => {
+        const next = { ...prev };
+        delete next[part.part_id];
+        return next;
+      });
     } catch (error: any) {
       console.error('Order failed:', error);
       if (error.response?.status === 401 || error.response?.data?.message?.includes('token')) {
         alert("[Bypass 401] Order placed successfully! (Mock)");
+        setOrderQtys(prev => {
+          const next = { ...prev };
+          delete next[part.part_id];
+          return next;
+        });
       } else {
         alert(`Order failed: ${error.response?.data?.message || error.message}`);
       }
@@ -272,6 +282,7 @@ export default function PurchasingPartPage() {
                 <th className={styles.qtyCell}>Qty</th>
                 <th className={styles.statusCell}>Status</th>
                 <th className={styles.priceCell}>Price</th>
+                <th style={{ textAlign: 'center', width: '100px' }}>Order Qty</th>
                 <th></th>
               </tr>
             </thead>
@@ -290,6 +301,18 @@ export default function PurchasingPartPage() {
                       }`}></span>
                     </td>
                     <td className={styles.priceCell}>{part.price ? Number(part.price).toLocaleString() : '-'}</td>
+                  <td style={{ paddingRight: '1rem' }}>
+                    <input 
+                      type="number" min="0" placeholder="0"
+                      value={orderQtys[part.part_id] || ''}
+                      onChange={(e) => {
+                        const q = parseInt(e.target.value) || 0;
+                        if (q > 0) setOrderQtys({ ...orderQtys, [part.part_id]: q });
+                        else { const n = { ...orderQtys }; delete n[part.part_id]; setOrderQtys(n); }
+                      }}
+                      className="w-full h-8 bg-[#F8FAFC] rounded-lg border border-gray-100 text-center font-bold outline-none"
+                    />
+                  </td>
                     <td className={styles.actionCell}>
                       <button className={styles.orderBtn} onClick={() => handleOrder(part)}>Order</button>
                     </td>
