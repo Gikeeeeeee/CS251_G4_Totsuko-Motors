@@ -13,7 +13,7 @@ export default function SidebarPS() {
       
 
       <div className={styles.navLinks}>
-        <a href="/clerk/dashboard" className={`${styles.link} ${pathname?.startsWith('/clerk/dashboard') ? styles.active : ''}`}>
+        <a href="/PurchasingStaff/purchasing-part" className={`${styles.link} ${pathname === '/PurchasingStaff/purchasing-part' ? styles.active : ''}`}>
           <span className={styles.icon}>
             <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M10 6V0H18V6H10ZM0 10V0H8V10H0ZM10 18V8H18V18H10ZM0 18V12H8V18H0ZM2 8H6V2H2V8ZM12 16H16V10H12V16ZM12 4H16V2H12V4ZM2 16H6V14H2V16Z" fill="currentColor"/>
