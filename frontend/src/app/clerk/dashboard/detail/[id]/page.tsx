@@ -11,43 +11,138 @@ export default async function ServiceDetailDynamic({ params }: { params: Promise
 
   let apiData = null;
   try {
-    const response = await apiClient.get('/service/service-request?limit=1000');
-    if (response.data && response.data.data) {
-      const match = response.data.data.find((item: any) => String(item.requestId) === id || item.requestId === id);
-      if (match) {
-        apiData = {
-          id: match.requestId,
-          customer: match.customerName || "-",
-          model: match.vehicleModel || "-",
-          color: match.vehicleColor || "-",
-          plate: match.plateNumber || "-",
-          vehicleName: match.vehicleMake || "-",
-          year: match.vehicleYear || "-",
-          appointment: {
-            checkIn: match.checkingDate ? new Date(match.checkingDate).toLocaleDateString('th-TH') : "- / - / -",
-            repair: (match.jobs && match.jobs[0]?.startTime) ? new Date(match.jobs[0].startTime).toLocaleDateString('th-TH') : "- / - / -",
-            estimatedDays: match.estimatedDays || "-",
-            estimatedHours: match.estimatedHours || "-",
-            estimatedMins: match.estimatedMins || "-"
-          },
-          jobs: (match.jobs && match.jobs.length > 0) ? match.jobs.map((job: any) => ({
-            id: job.serviceId,
-            startDate: job.startTime ? new Date(job.startTime).toLocaleDateString('th-TH') : "-",
-            endDate: job.endTime ? new Date(job.endTime).toLocaleDateString('th-TH') : "-",
-            status: job.serviceStatus || "Pending",
-            detail: job.serviceDetails || "-",
-            assignments: job.technicians || [],
-            part: job.partName || "-",
-            qty: job.partQuantity || 0
-          })) : [],
-          invoice: {
-            parts: match.invoice?.details || [],
-            labor: match.invoice?.laborCost || "0.00",
-            tax: match.invoice?.taxAmount || "0.00",
-            total: match.invoice?.totalAmount || "0.00"
-          }
-        };
+    const [requestRes, invoiceRes, apptRes, jobRes] = await Promise.allSettled([
+      apiClient.get('/service/service-request?limit=1000'),
+      apiClient.get(`/invoices/request/${id}`),
+      apiClient.get(`/appointments/request/${id}`),
+      apiClient.get(`/service/service-job/${id}`)
+    ]);
+
+    let match = null;
+    if (requestRes.status === 'fulfilled' && requestRes.value.data && requestRes.value.data.data) {
+      match = requestRes.value.data.data.find((item: any) => String(item.requestId) === id || item.requestId === id);
+    }
+
+    const invoiceData = invoiceRes.status === 'fulfilled' ? invoiceRes.value.data?.data : null;
+    const apptData = apptRes.status === 'fulfilled' ? apptRes.value.data?.data : null;
+    const jobData = jobRes.status === 'fulfilled' ? jobRes.value.data?.data : null;
+
+    if (match) {
+      // Process Appointment
+      let apptObj = {
+        checkIn: match.checkingDate ? new Date(match.checkingDate).toLocaleDateString('th-TH') : "- / - / -",
+        repair: "- / - / -",
+        estimatedDays: "-",
+        estimatedHours: "-",
+        estimatedMins: "-"
+      };
+      if (apptData && Array.isArray(apptData) && apptData.length > 0) {
+        const firstAppt = apptData[0];
+        if (firstAppt.appointmentDate) {
+          apptObj.repair = new Date(firstAppt.appointmentDate).toLocaleDateString('th-TH');
+        }
       }
+
+      // Process Invoice
+      let invoiceObj = {
+        parts: [],
+        labor: "0.00",
+        tax: "0.00",
+        total: "0.00"
+      };
+      if (invoiceData) {
+        invoiceObj.total = invoiceData.total_amount || invoiceData.totalAmount || "0.00";
+        // Calculate tax roughly or leave as 0.00 if API doesn't provide
+        const totalNum = parseFloat(invoiceObj.total);
+        if (!isNaN(totalNum)) {
+          invoiceObj.labor = totalNum.toFixed(2);
+          invoiceObj.tax = (totalNum * 0.07).toFixed(2);
+          invoiceObj.total = (totalNum + parseFloat(invoiceObj.tax)).toFixed(2);
+        }
+
+        if (invoiceData.invoiceDetails && Array.isArray(invoiceData.invoiceDetails)) {
+          invoiceObj.parts = invoiceData.invoiceDetails.map((detail: any) => ({
+            name: detail.details || "-",
+            qty: 1,
+            price: detail.amount || "0.00"
+          }));
+        }
+      }
+
+      // Process Job
+      let jobsArr: any[] = [];
+      if (jobData && Array.isArray(jobData)) {
+        jobsArr = jobData.map((job: any) => ({
+          id: job.service_id || job.serviceId || "-",
+          startDateRaw: job.start_time || job.startTime,
+          endDateRaw: job.end_time || job.endTime,
+          startDate: job.start_time || job.startTime ? new Date(job.start_time || job.startTime).toLocaleDateString('th-TH') : "-",
+          endDate: job.end_time || job.endTime ? new Date(job.end_time || job.endTime).toLocaleDateString('th-TH') : "-",
+          status: job.service_status || job.serviceStatus || "Pending",
+          detail: job.service_details || job.serviceDetails || "-",
+          assignments: job.technicians ? job.technicians.map((t: any) => ({ id: t.technician_id, name: t.name })) : [],
+          parts: job.parts || [],
+          part: job.parts && job.parts.length > 0 ? job.parts[0].part_name : "-",
+          qty: job.parts && job.parts.length > 0 ? job.parts[0].quantity : 0
+        }));
+      } else if (jobData && (jobData.service_id || jobData.serviceId)) {
+        jobsArr.push({
+          id: jobData.service_id || jobData.serviceId || "-",
+          startDateRaw: jobData.start_time || jobData.startTime,
+          endDateRaw: jobData.end_time || jobData.endTime,
+          startDate: jobData.start_time || jobData.startTime ? new Date(jobData.start_time || jobData.startTime).toLocaleDateString('th-TH') : "-",
+          endDate: jobData.end_time || jobData.endTime ? new Date(jobData.end_time || jobData.endTime).toLocaleDateString('th-TH') : "-",
+          status: jobData.service_status || jobData.serviceStatus || "Pending",
+          detail: jobData.service_details || jobData.serviceDetails || "-",
+          assignments: jobData.technicians ? jobData.technicians.map((t: any) => ({ id: t.technician_id, name: t.name })) : [],
+          parts: jobData.parts || [],
+          part: jobData.parts && jobData.parts.length > 0 ? jobData.parts[0].part_name : "-",
+          qty: jobData.parts && jobData.parts.length > 0 ? jobData.parts[0].quantity : 0
+        });
+      }
+
+      // Calculate estimated repair time from "In Progress" jobs
+      const inProgressJobs = jobsArr.filter(j => 
+        (j.status === "In Progress" || j.status === "In_progress") && 
+        j.startDateRaw && j.endDateRaw
+      );
+
+      if (inProgressJobs.length > 0) {
+        let earliestStart = new Date(inProgressJobs[0].startDateRaw).getTime();
+        let latestEnd = new Date(inProgressJobs[0].endDateRaw).getTime();
+        
+        inProgressJobs.forEach(j => {
+          const sTime = new Date(j.startDateRaw).getTime();
+          const eTime = new Date(j.endDateRaw).getTime();
+          if (sTime < earliestStart) earliestStart = sTime;
+          if (eTime > latestEnd) latestEnd = eTime;
+        });
+        
+        if (latestEnd > earliestStart) {
+          const diffMs = latestEnd - earliestStart;
+          const diffMins = Math.floor(diffMs / (1000 * 60));
+          const days = Math.floor(diffMins / (24 * 60));
+          const hours = Math.floor((diffMins % (24 * 60)) / 60);
+          const mins = diffMins % 60;
+          
+          apptObj.estimatedDays = days.toString();
+          apptObj.estimatedHours = hours.toString();
+          apptObj.estimatedMins = mins.toString();
+        }
+      }
+
+      apiData = {
+        id: match.requestId,
+        customer: match.customerName || "-",
+        model: match.vehicleDetail?.model || match.vehicleModel || "-",
+        color: match.vehicleDetail?.color || match.vehicleColor || "-",
+        plate: match.vehicleDetail?.plateNumber || match.plateNumber || "-",
+        vehicleName: match.vehicleDetail?.brand || match.vehicleMake || "-",
+        year: match.vehicleDetail?.year || match.vehicleYear || "-",
+        appointment: apptObj,
+        jobs: jobsArr,
+        invoice: invoiceObj
+      };
     }
   } catch (error) {
     console.error(`Error fetching service detail for ${id}:`, error);
@@ -167,8 +262,8 @@ export default async function ServiceDetailDynamic({ params }: { params: Promise
                         <span className={styles.dateSeparator}>-</span>
                         <div className={styles.dateBox}>{job.endDate}</div>
                       </div>
-                      {job.status === "Complete" ? (
-                        <div className={styles.statusComplete}>Complete</div>
+                      {job.status === "Completed" ? (
+                        <div className={styles.statusComplete}>Completed</div>
                       ) : (
                         <div className={styles.statusInProgress}>In Progress</div>
                       )}
@@ -183,12 +278,23 @@ export default async function ServiceDetailDynamic({ params }: { params: Promise
                   <div className={styles.grid2}>
                     <div>
                       <div className={styles.detailLabel}>Part</div>
-                      <div className={styles.partBox}>
-                        <div className={styles.partIconGroup}>
-                          <div className={styles.partDot}></div>
-                          {job.part}
-                        </div>
-                        <span className={styles.partQty}>{job.qty} เครื่อง</span>
+                      <div className={styles.partBox} style={{ flexDirection: 'column', gap: '0.5rem' }}>
+                        {job.parts && job.parts.length > 0 ? (
+                          job.parts.map((p: any, pidx: number) => (
+                            <div key={pidx} style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+                              <div className={styles.partIconGroup}>
+                                <div className={styles.partDot}></div>
+                                {p.part_name}
+                              </div>
+                              <span className={styles.partQty}>{p.quantity} เครื่อง</span>
+                            </div>
+                          ))
+                        ) : (
+                          <div className={styles.partIconGroup}>
+                            <div className={styles.partDot}></div>
+                            -
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div>
