@@ -5,12 +5,19 @@ import SidebarClerk from '@/components/SidebarClerk';
 import TopNavClerk from '@/components/TopNavClerk';
 
 type Appointment = {
+  id: string;
   day: number;       // 0=SUN ... 6=SAT
   startSlot: number; // 0..19  (8:00 = slot 0, 30-min steps)
   endSlot: number;   // exclusive
   plate: string;
   province: string;
 };
+
+// แปลงเวลา "8:30" → slot 1 (slot 0 = 8:00, ทุก 30 นาที = +1 slot)
+function timeToSlot(time: string): number {
+  const [h, m] = time.split(':').map(Number);
+  return (h - 8) * 2 + (m === 30 ? 1 : 0);
+}
 
 const DAYS = ['SUN', 'MON', 'TUE', 'WED', 'THUR', 'FRI', 'SAT'];
 
@@ -42,34 +49,6 @@ const APPOINTMENT_TIME_OPTIONS = Array.from({ length: 21 }, (_, i) => {
   const mm = minutes % 60;
   return `${h}:${mm === 0 ? '00' : mm}`;
 });
-
-const APPOINTMENTS: Appointment[] = [
-  // SUN
-  { day: 0, startSlot: 0,  endSlot: 4,  plate: '4ขฌ 6931', province: 'กรุงเทพ' },
-  { day: 0, startSlot: 4,  endSlot: 8,  plate: 'รย 232',    province: 'ปทุมธานี' },
-  { day: 0, startSlot: 8,  endSlot: 12, plate: 'รย 232',    province: 'ปทุมธานี' },
-  { day: 0, startSlot: 12, endSlot: 14, plate: 'คฌ 4320',   province: 'กรุงเทพ' },
-  { day: 0, startSlot: 14, endSlot: 17, plate: 'รย 232',    province: 'ปทุมธานี' },
-  // { day: 0, startSlot: 17, endSlot: 20, plate: '8ฌด 3232',  province: 'กรุงเทพ' },
-
-  // MON
-  { day: 1, startSlot: 0,  endSlot: 5,  plate: 'ขศ 7638',  province: 'กรุงเทพ' },
-  { day: 1, startSlot: 5,  endSlot: 8,  plate: 'พน 43',    province: 'ปทุมธานี' },
-  { day: 1, startSlot: 9,  endSlot: 12, plate: 'พน 43',    province: 'ปทุมธานี' },
-  { day: 1, startSlot: 12, endSlot: 17, plate: 'ขศ 7638',  province: 'กรุงเทพ' },
-  { day: 1, startSlot: 17, endSlot: 20, plate: 'พน 43',    province: 'ปทุมธานี' },
-
-  // TUE
-  { day: 2, startSlot: 0,  endSlot: 6,  plate: 'รย 232',    province: 'ปทุมธานี' },
-  { day: 2, startSlot: 6,  endSlot: 8,  plate: '8ฌด 3232',  province: 'กรุงเทพ' },
-  { day: 2, startSlot: 15, endSlot: 17, plate: '3ยว 928',   province: 'ปทุมธานี' },
-
-  // WED
-  { day: 3, startSlot: 0,  endSlot: 2,  plate: 'คฌ 4320',   province: 'กรุงเทพ' },
-  { day: 3, startSlot: 2,  endSlot: 5,  plate: '3ยว 928',   province: 'ปทุมธานี' },
-  { day: 3, startSlot: 5,  endSlot: 7,  plate: '8ฌด 3232',  province: 'กรุงเทพ' },
-  { day: 3, startSlot: 11, endSlot: 15, plate: '4ขฌ 6931',  province: 'กรุงเทพ' },
-];
 
 const CALENDAR_WEEKDAYS = ['SUN', 'MON', 'TUE', 'WED', 'THUR', 'FRI', 'SAT'];
 
@@ -135,6 +114,41 @@ export default function SchedulingPage() {
   const [viewYear, setViewYear] = useState(() => new Date().getFullYear());
   const [viewMonth, setViewMonth] = useState(() => new Date().getMonth());
   const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
+
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+
+  const handleAssignTask = () => {
+    const fullPlate = `${platePrefix} ${plateNumber}`.trim();
+    if (!platePrefix || !plateNumber) {
+      alert('กรุณากรอกทะเบียนรถให้ครบ');
+      return;
+    }
+
+    const startSlot = timeToSlot(appointPrefix);
+    const endSlot = timeToSlot(appointNumber);
+    if (endSlot <= startSlot) {
+      alert('เวลาสิ้นสุดต้องมากกว่าเวลาเริ่ม');
+      return;
+    }
+
+    setAppointments((prev) => [
+      ...prev,
+      {
+        id: crypto.randomUUID(),
+        day: selectedDate.getDay(),
+        startSlot,
+        endSlot,
+        plate: fullPlate,
+        province,
+      },
+    ]);
+  };
+
+  const handleDeleteAppointment = (id: string, plate: string) => {
+    if (confirm(`ต้องการลบนัดหมายของ "${plate}" ใช่หรือไม่?`)) {
+      setAppointments((prev) => prev.filter((a) => a.id !== id));
+    }
+  };
 
   const calendarDates = buildCalendarDates(viewYear, viewMonth, selectedDate);
 
@@ -330,6 +344,7 @@ export default function SchedulingPage() {
 
             <button
               type="button"
+              onClick={handleAssignTask}
               className="px-8 py-3 bg-[#002446] text-white rounded-lg text-sm font-semibold hover:bg-[#1A3A5F] transition-colors"
             >
               Assign Task
@@ -381,23 +396,28 @@ export default function SchedulingPage() {
             )}
 
             {/* Appointment blocks (overlay) */}
-            {APPOINTMENTS.map((a, idx) => (
+            {appointments.map((a) => (
               <div
-                key={`appt-${idx}`}
+                key={a.id}
                 className="p-1"
                 style={{
                   gridRow: `${a.startSlot + 2} / ${a.endSlot + 2}`,
                   gridColumn: a.day + 2,
                 }}
               >
-                <div className="h-full border-2 border-t-6 border-[#113357] rounded-b-xl flex flex-col justify-between p-2 bg-white">
+                <button
+                  type="button"
+                  onClick={() => handleDeleteAppointment(a.id, a.plate)}
+                  className="h-full w-full border-2 border-t-6 border-[#113357] rounded-b-xl flex flex-col justify-between p-2 bg-white hover:bg-red-50 hover:border-red-400 transition-colors cursor-pointer text-left"
+                  title="คลิกเพื่อลบนัดหมาย"
+                >
                   <span className="text-[10px] text-[#64748B]">{slotLabel(a.startSlot)}</span>
                   <div className="text-center leading-tight">
                     <div className="text-xs font-semibold text-[#002446]">{a.plate}</div>
                     <div className="text-xs text-[#113357]">{a.province}</div>
                   </div>
                   <span className="text-[10px] text-[#64748B] text-right">{slotLabel(a.endSlot)}</span>
-                </div>
+                </button>
               </div>
             ))}
           </div>
