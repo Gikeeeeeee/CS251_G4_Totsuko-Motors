@@ -1,10 +1,7 @@
 import { Request, Response } from 'express';
 import {
   createServiceJobForRequest,
-<<<<<<< HEAD
-=======
   getServiceJobById,
->>>>>>> merge/sprint2/be
   updateServiceJobById,
 } from '../../services/service/service-job.service';
 
@@ -23,8 +20,6 @@ export async function createServiceJob(req: Request, res: Response) {
   }
 }
 
-<<<<<<< HEAD
-=======
 export async function getServiceJob(req: Request, res: Response) {
   try {
     const data = await getServiceJobById(req.params.id);
@@ -40,7 +35,6 @@ export async function getServiceJob(req: Request, res: Response) {
   }
 }
 
->>>>>>> merge/sprint2/be
 export async function updateServiceJob(req: Request, res: Response) {
   try {
     const data = await updateServiceJobById(req.params.id, req.body);

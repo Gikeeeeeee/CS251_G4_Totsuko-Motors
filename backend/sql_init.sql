@@ -33,12 +33,7 @@ CREATE TABLE IF NOT EXISTS "Customer" (
     "name" VARCHAR(100) NOT NULL,
     "phone" VARCHAR(20),
     "address" TEXT,
-<<<<<<< HEAD
-    "email" VARCHAR(100),
-    "user_id" VARCHAR(10) REFERENCES "UserAccount"("user_id")
-=======
     "email" VARCHAR(100)
->>>>>>> merge/sprint2/be
 );
 
 CREATE TABLE IF NOT EXISTS "Vehicle" (
@@ -93,33 +88,6 @@ CREATE TABLE IF NOT EXISTS "Part" (
     "price" DECIMAL(10,2),
     "reorder_point" INT,
     "reserved_qty" INT DEFAULT 0
-<<<<<<< HEAD
-);
-
-CREATE TABLE IF NOT EXISTS "Supplier" (
-    "supplier_id" VARCHAR(10) PRIMARY KEY,
-    "supplier_name" VARCHAR(100) NOT NULL,
-    "phone" VARCHAR(20),
-    "email" VARCHAR(100),
-    "address" TEXT
-);
-
-CREATE TABLE IF NOT EXISTS "PurchaseOrder" (
-    "po_id" VARCHAR(10) PRIMARY KEY,
-    "order_status" VARCHAR(30),
-    "order_date" DATE,
-    "purchasing_staff_id" VARCHAR(10) REFERENCES "PurchasingStaff"("employee_id"),
-    "supplier_id" VARCHAR(10) REFERENCES "Supplier"("supplier_id"),
-    "order_quantity" INT
-);
-
-CREATE TABLE IF NOT EXISTS "PurchaseOrderPart" (
-    "po_id" VARCHAR(10) REFERENCES "PurchaseOrder"("po_id"),
-    "part_id" VARCHAR(10) REFERENCES "Part"("part_id"),
-    "buying_price" DECIMAL(10,2),
-    PRIMARY KEY ("po_id", "part_id")
-=======
->>>>>>> merge/sprint2/be
 );
 
 CREATE TABLE IF NOT EXISTS "Supplier" (
@@ -144,9 +112,6 @@ CREATE TABLE IF NOT EXISTS "PurchaseOrderPart" (
     "part_id" VARCHAR(10) REFERENCES "Part"("part_id"),
     "buying_price" DECIMAL(10,2),
     "quantity" INT,
-<<<<<<< HEAD
-    PRIMARY KEY ("part_id", "job_id")
-=======
     PRIMARY KEY ("po_id", "part_id")
 );
 
@@ -175,5 +140,4 @@ CREATE TABLE IF NOT EXISTS "InvoiceDetail" (
     "details" TEXT NOT NULL,
     "amount" DECIMAL(10, 2),
     PRIMARY KEY ("invoice_id", "details")
->>>>>>> merge/sprint2/be
 );

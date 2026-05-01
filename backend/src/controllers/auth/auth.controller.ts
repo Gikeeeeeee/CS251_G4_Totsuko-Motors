@@ -2,15 +2,6 @@ import { Response, NextFunction } from 'express';
 import { AuthRequest } from '../../middlewares/auth.middleware';
 import { loginUser, registerUser, refreshAccessToken } from '../../services/auth/auth.service';
 import { generateToken, generateRefreshToken } from '../../utils/jwt';
-<<<<<<< HEAD
-
-export const login = async (req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-      const error: any = new Error('กรุณากรอก email และ password');
-=======
 import { db } from '../../db';
 import { userAccount, employee } from '../../db/schema';
 import { eq } from 'drizzle-orm';
@@ -21,16 +12,11 @@ export const login = async (req: AuthRequest, res: Response, next: NextFunction)
 
     if (!emailOrUsername || !password) {
       const error: any = new Error('กรุณากรอก email/username และ password');
->>>>>>> merge/sprint2/be
       error.statusCode = 400;
       return next(error);
     }
 
-<<<<<<< HEAD
-    const user = await loginUser(email, password);
-=======
     const user = await loginUser(emailOrUsername, password);
->>>>>>> merge/sprint2/be
     const token = generateToken(user.userId);
     const refreshToken = generateRefreshToken(user.userId);
 
@@ -69,12 +55,6 @@ export const logout = (req: AuthRequest, res: Response, next: NextFunction) => {
 
 export const verify = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-<<<<<<< HEAD
-    res.json({
-      success: true,
-      message: 'Token ถูกต้อง',
-      userId: req.userId,
-=======
    
     const user = await db.select({
       userId: userAccount.userId,
@@ -99,7 +79,6 @@ export const verify = async (req: AuthRequest, res: Response, next: NextFunction
       success: true,
       message: 'Token ถูกต้อง',
       user: user[0],
->>>>>>> merge/sprint2/be
     });
   } catch (error) {
     next(error);
@@ -108,24 +87,14 @@ export const verify = async (req: AuthRequest, res: Response, next: NextFunction
 
 export const register = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-<<<<<<< HEAD
-    const { email, username, password, userId } = req.body;
-
-    if (!email || !username || !password || !userId) {
-      const error: any = new Error('กรุณากรอกข้อมูลให้ครบถ้วน');
-=======
     const { email, username, password, role, name, phone, hireDate } = req.body;
 
     if (!email || !username || !password || !role || !name) {
       const error: any = new Error('กรุณากรอกข้อมูลให้ครบถ้วน (email, username, password, role, name)');
->>>>>>> merge/sprint2/be
       error.statusCode = 400;
       return next(error);
     }
 
-<<<<<<< HEAD
-    const user = await registerUser(email, username, password, userId);
-=======
     // ตรวจสอบว่า role ถูกต้องหรือไม่
     const validRoles = ['technician', 'clerk', 'purchasingStaff'];
     if (!validRoles.includes(role)) {
@@ -135,7 +104,6 @@ export const register = async (req: AuthRequest, res: Response, next: NextFuncti
     }
 
     const user = await registerUser(email, username, password, role, name, phone, hireDate);
->>>>>>> merge/sprint2/be
     const token = generateToken(user.userId);
     const refreshToken = generateRefreshToken(user.userId);
 

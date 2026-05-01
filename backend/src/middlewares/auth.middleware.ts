@@ -1,10 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyToken, verifyRefreshToken, generateToken } from '../utils/jwt';
-<<<<<<< HEAD
-
-export interface AuthRequest extends Request {
-  userId?: string;
-=======
 import { db } from '../db';
 import { userAccount } from '../db/schema';
 import { eq } from 'drizzle-orm';
@@ -12,7 +7,6 @@ import { eq } from 'drizzle-orm';
 export interface AuthRequest extends Request {
   userId?: string;
   userRole?: string;
->>>>>>> merge/sprint2/be
 }
 
 export const authMiddleware = (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -61,8 +55,6 @@ export const authMiddleware = (req: AuthRequest, res: Response, next: NextFuncti
     next(error);
   }
 };
-<<<<<<< HEAD
-=======
 
 // Middleware สำหรับตรวจสอบ role
 export const requireRole = (...allowedRoles: string[]) => {
@@ -108,4 +100,3 @@ export const isPurchasingStaff = requireRole('purchasingStaff');
 // Middleware สำหรับหลาย role
 export const isClerkOrPurchasing = requireRole('clerk', 'purchasingStaff');
 export const isAnyStaff = requireRole('technician', 'clerk', 'purchasingStaff');
->>>>>>> merge/sprint2/be
