@@ -5,6 +5,8 @@ import {
   findInvoiceByRequestId,
   findInvoiceDetailsByInvoiceId,
   findServiceRequestForInvoice,
+  findAllInvoices,
+  updateInvoicePaymentStatus,
 } from '../../repo/invoice/invoice.repo';
 
 export type InvoiceDetailItem = {
@@ -52,6 +54,10 @@ export async function getInvoiceByRequestId(requestId: string) {
 
   const details = await findInvoiceDetailsByInvoiceId(invoice.invoice_id);
   return { ...invoice, details };
+}
+
+export async function getAllInvoices() {
+  return await findAllInvoices();
 }
 
 export async function createInvoice(body: CreateInvoiceBody) {
@@ -116,4 +122,14 @@ export async function createInvoice(body: CreateInvoiceBody) {
     paymentStatus,
     totalAmount: computedTotal,
   });
+}
+
+export async function payInvoice(invoiceId: string) {
+  if (!invoiceId) throw new Error('invoice_id is required');
+  
+  const updated = await updateInvoicePaymentStatus(invoiceId, 'Paid');
+  if (!updated) {
+    throw new Error(`Invoice "${invoiceId}" not found`);
+  }
+  return updated;
 }
