@@ -25,43 +25,32 @@ type AppointmentData = {
   notes?: string;
 };
 
-type MockData = {
-  plateNumber: string;
+type ServiceRequestData = {
+  requestId: string;
+  requestStatus: string;
+  problemDescription: string;
+  odometer: number;
+  checkingDate: string;
   name: string;
+  phone: string;
+  email: string;
+  plateNumber: string;
   brand: string;
   model: string;
-  year: number;
+  year: number | string;
   color: string;
-  problemDescription: string;
-  appointment: AppointmentData;
-  serviceJobs: string[];
-  otherServices: string[];
-  invoiceItems: { partName: string; stockQuantity: number; qtyUsed: number; price: number }[];
+  vehicleType: string;
 };
 
 const REQUEST_ID = 'REQ-001';
 
-const MOCK: MockData = {
-  plateNumber: '4ขณ 6931',
-  name: 'พีรภัทร เอกดิษฐ์',
-  brand: 'Totoya',
-  model: 'Veroz',
-  year: 2022,
-  color: 'White',
-  problemDescription: 'สังเกตยางใบรถ, ยางระเบิด, แนะให้ฟ้าคนขับเสีย',
-  appointment: {
-    appointmentDate: '12/04/2568',
+export default function OperatingPage() {
+  const [data, setData] = useState<ServiceRequestData | null>(null);
+  const [appointment, setAppointment] = useState<AppointmentData>({
+    appointmentDate: '',
     status: 'SCHEDULED',
     notes: '',
-  },
-  serviceJobs: [],
-  otherServices: [],
-  invoiceItems: [],
-};
-
-export default function OperatingPage() {
-  const [data, setData] = useState<MockData | null>(null);
-  const [appointment, setAppointment] = useState<AppointmentData>(MOCK.appointment);
+  });
   const [jobs, setJobs] = useState<ServiceJob[]>([]);
   const [otherItems, setOtherItems] = useState<OtherService[]>([]);
 
@@ -78,7 +67,10 @@ export default function OperatingPage() {
   };
 
   useEffect(() => {
-    setData(MOCK);
+    apiClient
+      .get<{ success: boolean; data: ServiceRequestData }>(`/service/service-request/${REQUEST_ID}`)
+      .then((res) => setData(res.data.data))
+      .catch(() => {});
 
     apiClient
       .get<{ success: boolean; data: any[] }>(`/service/${REQUEST_ID}/service-jobs`)
@@ -196,16 +188,6 @@ export default function OperatingPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold" style={{ color: '#1E3A8A' }}>Operating</h1>
-        <button
-          onClick={() => setData((v) => (v ? null : MOCK))}
-          className="px-4 py-1.5 rounded-md text-xs font-semibold transition-colors cursor-pointer"
-          style={{
-            backgroundColor: data ? '#1E3A8A' : '#E2E8F0',
-            color: data ? 'white' : '#64748B',
-          }}
-        >
-          {data ? 'Mock ON' : 'Mock OFF'}
-        </button>
       </div>
 
       {data === null ? (
@@ -213,7 +195,7 @@ export default function OperatingPage() {
           className="rounded-lg flex items-center justify-center py-10"
           style={{ backgroundColor: 'transparent', border: '1px solid #E2E8F0' }}
         >
-          <span className="text-sm text-slate-400">Nothing yet</span>
+          <span className="text-sm text-slate-400">Loading...</span>
         </div>
       ) : (
         <div className="space-y-4">
@@ -260,7 +242,7 @@ export default function OperatingPage() {
   );
 }
 
-function InvoiceCard({ jobs, otherItems }: { data: MockData; jobs: ServiceJob[]; otherItems: OtherService[] }) {
+function InvoiceCard({ jobs, otherItems }: { data: ServiceRequestData | null; jobs: ServiceJob[]; otherItems: OtherService[] }) {
   const [isSending, setIsSending] = useState(false);
   const [sentToClerk, setSentToClerk] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
@@ -489,7 +471,7 @@ function DatePicker({ value, onChange, disabled }: { value: string; onChange: (v
   );
 }
 
-function AppointmentCard({ data, appointment, onSave }: { data: MockData; appointment: AppointmentData; onSave: (appointment: AppointmentData) => Promise<void> }) {
+function AppointmentCard({ data, appointment, onSave }: { data: ServiceRequestData; appointment: AppointmentData; onSave: (appointment: AppointmentData) => Promise<void> }) {
   const [isEditing, setIsEditing] = useState(!appointment.appointmentId);
   const [appt, setAppt] = useState<AppointmentData>(appointment);
 
@@ -542,10 +524,11 @@ function AppointmentCard({ data, appointment, onSave }: { data: MockData; appoin
         </div>
 
         {/* Row 2 */}
-        <div className="grid grid-cols-3 gap-4 items-start">
+        <div className="grid grid-cols-[1fr_0.8fr_0.8fr_2fr] gap-4 items-start">
           <Field label="Plate Number" value={data.plateNumber} />
           <Field label="Brand" value={data.brand} />
           <Field label="Year" value={String(data.year)} />
+          <Field label="Car Type" value="Four Wheel" />
         </div>
         <div className="mt-4">
           <div className="text-[10px] uppercase tracking-widest text-slate-400 mb-1">Status</div>
