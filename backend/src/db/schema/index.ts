@@ -139,6 +139,7 @@ export const part = pgTable('Part', {
   price: decimal('price', { precision: 10, scale: 2 }),
   reorderPoint: integer('reorder_point'),
   reservedQty: integer('reserved_qty').default(0),
+  supplierId: varchar('supplier_id', { length: 10 }).references(() => supplier.supplierId),
 });
 
 export const purchaseOrderPart = pgTable(
@@ -147,7 +148,7 @@ export const purchaseOrderPart = pgTable(
     poId: varchar('po_id', { length: 20 }).references(() => purchaseOrder.poId),
     partId: varchar('part_id', { length: 10 }).references(() => part.partId),
     buyingPrice: decimal('buying_price', { precision: 10, scale: 2 }),
-    quantity: integer('quantity'),
+    quantity: integer('quantity').notNull(),
   },
   (table) => ({
     pk: primaryKey({ columns: [table.poId, table.partId] }),

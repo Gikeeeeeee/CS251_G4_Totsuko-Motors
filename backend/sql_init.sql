@@ -81,21 +81,22 @@ CREATE TABLE IF NOT EXISTS "ServiceJob" (
 );
 
 -- 4. อะไหล่และการสั่งซื้อ
-CREATE TABLE IF NOT EXISTS "Part" (
-    "part_id" VARCHAR(10) PRIMARY KEY,
-    "part_name" VARCHAR(100) NOT NULL,
-    "stock_quantity" INT DEFAULT 0,
-    "price" DECIMAL(10,2),
-    "reorder_point" INT,
-    "reserved_qty" INT DEFAULT 0
-);
-
 CREATE TABLE IF NOT EXISTS "Supplier" (
     "supplier_id" VARCHAR(10) PRIMARY KEY,
     "supplier_name" VARCHAR(100) NOT NULL,
     "phone" VARCHAR(20),
     "email" VARCHAR(100),
     "address" TEXT
+);
+
+CREATE TABLE IF NOT EXISTS "Part" (
+    "part_id" VARCHAR(10) PRIMARY KEY,
+    "part_name" VARCHAR(100) NOT NULL,
+    "stock_quantity" INT DEFAULT 0,
+    "price" DECIMAL(10,2),
+    "reorder_point" INT,
+    "reserved_qty" INT DEFAULT 0,
+    "supplier_id" VARCHAR(10) REFERENCES "Supplier"("supplier_id")
 );
 
 CREATE TABLE IF NOT EXISTS "PurchaseOrder" (
@@ -111,7 +112,7 @@ CREATE TABLE IF NOT EXISTS "PurchaseOrderPart" (
     "po_id" VARCHAR(20) REFERENCES "PurchaseOrder"("po_id"),
     "part_id" VARCHAR(10) REFERENCES "Part"("part_id"),
     "buying_price" DECIMAL(10,2),
-    "quantity" INT,
+    "quantity" INT NOT NULL,
     PRIMARY KEY ("po_id", "part_id")
 );
 

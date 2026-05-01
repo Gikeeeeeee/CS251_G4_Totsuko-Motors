@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react'
 import apiClient from '@/services/apiClient'
 import { ChevronDown, ChevronLeft, ChevronRight, Search, ShoppingCart, Trash2, Package, CheckCircle2, AlertCircle } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 
 export default function VendorPage() {
   const [vendors, setVendors] = useState<any[]>([])
@@ -9,16 +10,36 @@ export default function VendorPage() {
   const [orderQty, setOrderQty] = useState<Record<string, { qty: number, name: string, supplier: string, supplierId: string, buyingPrice: number }>>({})
   const [showPickingList, setShowPickingList] = useState(false)
   const [globalOrderStatus, setGlobalOrderStatus] = useState<string | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
-    // อิงตาม schema: supplier_id, supplier_name
-    apiClient.get('/Supplier')
-      .then(res => setVendors(res.data))
-      .catch(() => {
-        setVendors([
-          { supplier_id: "S001", supplier_name: "Totsuko Parts Center" },
-          { supplier_id: "S002", supplier_name: "Apex Engine Solutions" }
-        ])
+    // 🛠️ Bypass Auth Guard
+    const role = localStorage.getItem('role');
+     const validRoles = ['Admin', 'admin', 'purchasingStaff', 'PurchasingStaff'];
+     if (!role || !validRoles.includes(role)) {
+       alert('Access Denied: Only Admin and Purchasing Staff are allowed.');
+       router.push('/Login');
+     }
+  }, [router]);
+
+  useEffect(() => {
+    apiClient.get('/service/suppliers')
+      .then(res => {
+        const data = res.data?.data || res.data || [];
+        setVendors(data.map((s: any) => ({
+          supplier_id: s.supplierId || s.supplier_id,
+          supplier_name: s.supplierName || s.supplier_name
+        })));
+      })
+      .catch((error: any) => {
+        if (error.response?.status === 401) {
+          setVendors([
+            { supplier_id: "SUP001", supplier_name: "Totsuko Parts Center" },
+            { supplier_id: "SUP002", supplier_name: "Apex Engine Solutions" }
+          ])
+        } else {
+          setVendors([])
+        }
       })
   }, [])
 
@@ -32,30 +53,35 @@ export default function VendorPage() {
         ordersBySupplier[item.supplierId] = { items: [], totalQty: 0 };
       }
       ordersBySupplier[item.supplierId].items.push({ 
-        part_id: partId, 
-        quantity: item.qty, // เพิ่ม qty ตามสั่ง
-        buying_price: item.buyingPrice 
+        partId: partId, 
+        quantity: item.qty, 
+        unitCost: Number(item.buyingPrice) || 0 
       });
       ordersBySupplier[item.supplierId].totalQty += item.qty;
     });
 
     try {
-      const currentStaffId = localStorage.getItem('employee_id') || 'EMP001';
+      const staffId = typeof window !== 'undefined' ? localStorage.getItem('employee_id') || 'EMP001' : 'EMP001';
       const promises = Object.entries(ordersBySupplier).map(([sId, data]) => {
-        return apiClient.post('/PurchaseOrders', {
-          supplier_id: sId,
-          order_status: 'Paid',
-          order_date: new Date().toISOString().split('T')[0],
-          purchasing_staff_id: currentStaffId,
-          order_quantity: data.totalQty,
+        return apiClient.post('/service/order', {
+          supplierId: sId,
+          staffId: staffId,
+          purchasingStaffId: staffId,
           items: data.items 
         });
       });
 
       await Promise.all(promises);
       setGlobalOrderStatus("receipt recorded! (api)");
-    } catch (error) {
-      setGlobalOrderStatus("receipt recorded! (mock)");
+      alert("Create all Purchase Orders successfully!");
+    } catch (error: any) {
+      console.error("Failed to create all orders:", error);
+      if (error.response?.status === 401) {
+        setGlobalOrderStatus("receipt recorded! (mock)");
+        alert("[Bypass 401] Create all Purchase Orders successfully! (Mock)");
+      } else {
+        alert(`Failed to create orders: ${error.response?.data?.message || error.message}`);
+      }
     }
 
     setTimeout(() => {
@@ -140,20 +166,40 @@ function VendorPartsTable({ vendorId, vendorName, orderQty, setOrderQty, onViewL
   const itemsPerPage = 5
 
   useEffect(() => {
-    // อิงตาม schema: part_id, part_name, stock_quantity, price, supplier_id
-    apiClient.get('/Parts')
-      .then(res => {
-        // Filter เฉพาะพาร์ทที่ตรงกับ supplier นี้
-        const filtered = res.data.filter((p: any) => p.supplier_id === vendorId);
-        setParts(filtered)
+    const fetchPartsAuto = async () => {
+      try {
+        // เรียกใช้ API เส้นที่ถูกต้องโดยตรง เพื่อไม่ให้ขึ้น Error แดงใน Network Tab
+        const res = await apiClient.get('/service/parts');
+        const data = res.data?.data || res.data || [];
+        if (Array.isArray(data)) return data;
+      } catch (e) {}
+      throw new Error("No endpoints returned data");
+    };
+
+    fetchPartsAuto()
+      .then(data => {
+        const mapped = data.map((p: any) => {
+          const sId = p.supplierId || p.supplier_id || p.supplier?.supplierId || p.supplier?.supplier_id;
+          return {
+            part_id: p.partId || p.part_id,
+            part_name: p.partName || p.part_name || p.name,
+            stock_quantity: p.stockQuantity || p.stock_qty || 0,
+            price: p.price || 0,
+            supplier_id: sId
+          };
+        });
+
+        const filtered = mapped.filter((p: any) => 
+          p.supplier_id && String(p.supplier_id).trim().toLowerCase() === String(vendorId).trim().toLowerCase()
+        );
+        setParts(filtered);
       })
       .catch(() => {
-        const bigMockParts = [
+        setParts([
           { part_id: 'ENG-V8', part_name: 'Engine Block V8', stock_quantity: 25, price: 70000.00, supplier_id: vendorId },
           { part_id: 'OIL-5L', part_name: 'Synthetic Oil 5L', stock_quantity: 100, price: 1400.00, supplier_id: vendorId },
           { part_id: 'BRK-CB', part_name: 'Carbon Brake Pad Set', stock_quantity: 15, price: 12500.00, supplier_id: vendorId },
-        ];
-        setParts(bigMockParts);
+        ]);
       })
   }, [vendorId])
 
@@ -228,24 +274,33 @@ function VendorPartsTable({ vendorId, vendorName, orderQty, setOrderQty, onViewL
             onClick={async () => {
               const currentSupplierItems = Object.entries(orderQty)
                 .filter(([_, val]: any) => val.supplierId === vendorId && val.qty > 0)
-                .map(([id, val]: any) => ({ part_id: id, quantity: val.qty, buying_price: val.buyingPrice }));
+                .map(([id, val]: any) => ({ partId: id, quantity: val.qty, unitCost: Number(val.buyingPrice) || 0 }));
 
               if (currentSupplierItems.length === 0) return;
               try {
-                const staffId = localStorage.getItem('employee_id') || 'EMP001';
-                await apiClient.post('/PurchaseOrders', {
-                  supplier_id: vendorId,
-                  items: currentSupplierItems,
-                  order_status: 'Paid',
-                  order_date: new Date().toISOString().split('T')[0],
-                  purchasing_staff_id: staffId,
-                  order_quantity: currentSupplierItems.reduce((a,b) => a + b.quantity, 0)
+                const staffId = typeof window !== 'undefined' ? localStorage.getItem('employee_id') || 'EMP001' : 'EMP001';
+                await apiClient.post('/service/order', {
+                  supplierId: vendorId,
+                  staffId: staffId,
+                  purchasingStaffId: staffId,
+                  items: currentSupplierItems
                 });
                 // Clear only this vendor's items
                 const n = {...orderQty};
                 Object.keys(n).forEach(k => { if(n[k].supplierId === vendorId) delete n[k] });
                 setOrderQty(n);
-              } catch (e) {}
+                alert("Receipt recorded successfully!");
+              } catch (e: any) {
+                console.error("Failed to record receipt:", e);
+                if (e.response?.status === 401) {
+                  const n = {...orderQty};
+                  Object.keys(n).forEach(k => { if(n[k].supplierId === vendorId) delete n[k] });
+                  setOrderQty(n);
+                  alert("[Bypass 401] Receipt recorded successfully! (Mock)");
+                } else {
+                  alert(`Failed to record receipt: ${e.response?.data?.message || e.message}`);
+                }
+              }
             }}
             className="bg-[#102C57] text-white px-10 py-3 rounded-lg font-black text-[10px] uppercase tracking-widest shadow-md hover:bg-[#1d3e75] transition-all"
           >
