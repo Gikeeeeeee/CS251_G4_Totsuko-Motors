@@ -38,7 +38,7 @@ export default function SidebarTech() {
     <nav className={styles.sidebar}>
       <div>
         <div className={styles.logoSection}>
-          <img src="/Logo.png" alt="Totsuko Motors" className={styles.logo} />
+          <img src="/logo.png" alt="Totsuko Motors" className={styles.logo} />
         </div>
         <div className={styles.navLinks}>
           {navItems.map((item) => {

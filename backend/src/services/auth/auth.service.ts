@@ -18,13 +18,13 @@ export const loginUser = async (emailOrUsername: string, password: string) => {
     phone: employee.phone,
     hireDate: employee.hireDate,
   }).from(userAccount)
-  .leftJoin(employee, eq(userAccount.userId, employee.userId))
-  .where(
-    or(
-      eq(userAccount.email, emailOrUsername),
-      eq(userAccount.username, emailOrUsername)
-    )
-  ).limit(1);
+    .leftJoin(employee, eq(userAccount.userId, employee.userId))
+    .where(
+      or(
+        eq(userAccount.email, emailOrUsername),
+        eq(userAccount.username, emailOrUsername)
+      )
+    ).limit(1);
 
   if (user.length === 0) {
     throw new Error('ไม่พบผู้ใช้งาน');
@@ -49,9 +49,9 @@ export const loginUser = async (emailOrUsername: string, password: string) => {
 };
 
 export const registerUser = async (
-  email: string, 
-  username: string, 
-  password: string, 
+  email: string,
+  username: string,
+  password: string,
   role: 'technician' | 'clerk' | 'purchasingStaff',
   name: string,
   phone?: string,
@@ -79,7 +79,6 @@ export const registerUser = async (
   const employeeId = await generateEmployeeId(role);
 
   const hashedPassword = await hashPassword(password);
-  
   const finalHireDate = hireDate ? new Date(hireDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
 
   // Insert into userAccount

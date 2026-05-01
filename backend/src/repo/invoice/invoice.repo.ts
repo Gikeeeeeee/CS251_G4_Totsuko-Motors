@@ -48,6 +48,21 @@ export async function findInvoiceDetailsByInvoiceId(invoiceId: string) {
   );
 
   return result.rows;
+  const invoice = result.rows[0] ?? null;
+
+  if (invoice) {
+    const detailsResult = await pool.query(
+      `
+        SELECT details, amount
+        FROM "InvoiceDetail"
+        WHERE invoice_id = $1
+      `,
+      [invoice.invoice_id]
+    );
+    invoice.invoiceDetails = detailsResult.rows;
+  }
+
+  return invoice;
 }
 
 export async function findServiceRequestForInvoice(requestId: string) {

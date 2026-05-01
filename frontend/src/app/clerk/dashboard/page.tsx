@@ -7,20 +7,6 @@ import Link from 'next/link'
 import apiClient from '@/services/apiClient';
 
 export default function ClerkDashboard() {
-  const mockData = [
-    { plate: "4ขฒ693", id: "sv011", customer: "พีรภัทร เอกนิษฐ์", car: "Toyota Yaris 2022 (white)", problem: "ลืมเก็บขยะในรถ, ยางระเบิด, Amazon Web Service", status: "REPAIRING", time: "14:30" },
-    { plate: "สส 911", id: "sv012", customer: "ธีรเมธ บุญประเสริฐชัย", car: "Tesla Model 3 2019 (blue)", problem: "ระบบเบรคมีปัญหา", status: "RECIEVED", time: "14:45" },
-    { plate: "อมก 6773", id: "sv013", customer: "นวพรรณ กำไรสุข", car: "Ford F-150 2014 (black)", problem: "Steering wheel มีปัญหา", status: "CANCELED", time: "-----" },
-    { plate: "ตกก 8934", id: "sv014", customer: "ปวริศร มั่งนิมิตร", car: "Honda Civic 2020 (grey)", problem: "ตรวจเช็คน้ำมันเครื่อง, ต้องตรวจเช็คสภาพยาง", status: "COMPLETED", time: "READY" },
-    { plate: "กก 4321", id: "sv015", customer: "เห้ย เจมส์เจมส์", car: "Honda Civic 2020 (grey)", problem: "เช็คน้ำมันเครื่อง, ตรวจเช็คสภาพทั่วไป", status: "COMPLETED", time: "READY" },
-    { plate: "6สด 403", id: "sv015", customer: "สุข สมานแผล", car: "Honda Civic 2020 (grey)", problem: "เช็คน้ำมันเครื่อง, ตรวจเช็คสภาพทั่วไป", status: "COMPLETED", time: "READY" },
-    { plate: "ทย 981", id: "sv016", customer: "ไข่ แมวดำ", car: "Honda Civic 2020 (grey)", problem: "ยางหน้ารั่ว", status: "COMPLETED", time: "READY" },
-    { plate: "นด 6969", id: "sv017", customer: "อนุถวย หัวคิน", car: "Honda Civic 2020 (grey)", problem: "ตรวจเช็คน้ำมันเครื่อง, ต้องตรวจเช็คสภาพยาง", status: "COMPLETED", time: "READY" },
-    { plate: "ยก 3214", id: "sv018", customer: "สมใจ กันบ้าง", car: "Honda Civic 2020 (grey)", problem: "ประตูฝั่งคนขับบุบ, สีรถร่อนและเสียหาย", status: "COMPLETED", time: "READY" },
-    { plate: "ทป 7654", id: "sv019", customer: "เมิน ห่างเหินเดินหนี", car: "Honda Civic 2020 (grey)", problem: "ตรวจเช็คน้ำมันเครื่อง, ต้องตรวจเช็คสภาพยาง", status: "COMPLETED", time: "READY" },
-    { plate: "ทค 1122", id: "sv020", customer: "สมเกียรติ ยิ่งเจริญ", car: "Nissan Almera 2021 (red)", problem: "เปลี่ยนถ่ายน้ำมันเครื่อง", status: "RECIEVED", time: "10:00" },
-    { plate: "งจ 9999", id: "sv021", customer: "วิภาดา สุขใจ", car: "Mazda 2 2018 (white)", problem: "แอร์ไม่เย็น", status: "REPAIRING", time: "16:00" }
-  ];
 
   const [recentServices, setRecentServices] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -31,15 +17,37 @@ export default function ClerkDashboard() {
   useEffect(() => {
     const fetchServices = async () => {
       try {
-        const response = await apiClient.get('/services');
-        if (response.data && response.data.length > 0) {
-          setRecentServices(response.data);
-        } else {
-          setRecentServices(mockData);
+        const response = await apiClient.get('/service/service-request?limit=1000');
+        if (response.data && (response.data.data || response.data.success)) {
+          const mappedData = (response.data.data || []).map((item: any) => ({
+            plate: item.vehicleDetail?.plateNumber || "",
+            id: String(item.requestId || ""),
+            customer: item.customerName || "-",
+            car: (
+              <>
+                {`${item.vehicleDetail?.brand || ""} ${item.vehicleDetail?.model || ""} ${item.vehicleDetail?.year || ""}`.trim() || "-"}
+                {item.vehicleDetail?.color && (
+                  <>
+                    <br />
+                    ({item.vehicleDetail?.color})
+                  </>
+                )}
+              </>
+            ),
+            problem: item.problemDescription || "-",
+            status: item.requestStatus ? item.requestStatus.toUpperCase() : "PENDING",
+            time: item.requestStatus?.toUpperCase() === 'CANCELED'
+              ? "-----"
+              : item.requestStatus?.toUpperCase() === 'COMPLETED'
+                ? "READY"
+                : item.checkingDate
+                  ? new Date(item.checkingDate).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })
+                  : "-"
+          }));
+          setRecentServices(mappedData);
         }
       } catch (error) {
         console.error("Error fetching services:", error);
-        setRecentServices(mockData);
       }
     };
     fetchServices();
@@ -52,9 +60,9 @@ export default function ClerkDashboard() {
   const filteredServices = recentServices.filter(service => {
     const searchLower = searchQuery.toLowerCase();
     const matchesSearch =
-      service.customer.toLowerCase().includes(searchLower) ||
-      service.id.toLowerCase().includes(searchLower) ||
-      service.plate.toLowerCase().includes(searchLower);
+      (service.customer || "").toLowerCase().includes(searchLower) ||
+      (service.id || "").toLowerCase().includes(searchLower) ||
+      (service.plate || "").toLowerCase().includes(searchLower);
     const matchesStatus = statusFilter === 'ALL' || service.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -91,24 +99,23 @@ export default function ClerkDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC]">
+    <div className="min-h-screen bg-[#f3faff]">
       <SidebarClerk />
       <TopNavClerk />
 
-      <main className="ml-[256px] pt-[64px] p-8">
-        <div className="max-w-7xl mx-auto space-y-8">
-          <div className="flex justify-between items-end">
+      <main className="ml-[256px] pt-[100px] px-16 py-8">
+        <div className="max-w-[1440px] mx-auto space-y-12">
+          <div className="flex justify-between items-end mb-10">
             <div>
-              <h1 className="text-2xl font-[800] uppercase tracking-tight text-[#002446] mb-1">Dashboard</h1>
-              <p className="text-sm text-[#64748B]">Overview & Recent Services</p>
+              <h1 className="text-3xl font-[800] tracking-tight text-[#002446]">Service Overview</h1>
             </div>
           </div>
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-[1fr_1fr_1fr_1.6fr] gap-6 mb-12">
           {/* Card 1 */}
-          <div className="bg-white p-6 rounded-xl shadow-[0_1px_3px_rgba(0,0,0,0.05)] border border-gray-100 flex flex-col justify-between h-32">
+          <div className="bg-white p-7 rounded-xl shadow-[0_1px_3px_rgba(0,0,0,0.05)] border border-gray-100 flex flex-col justify-between h-44">
             <div className="flex items-start">
               <div className="w-10 h-10 rounded-lg bg-[#E0F2FE] text-[#0284C7] flex items-center justify-center">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -119,13 +126,13 @@ export default function ClerkDashboard() {
               </div>
             </div>
             <div>
-              <div className="text-[10px] font-bold text-gray-500 tracking-wider mb-1">CARS IN SERVICE</div>
-              <div className="text-3xl font-bold text-[#0F172A]">6</div>
+              <div className="text-[11px] font-bold text-gray-500 tracking-widest mb-1">CARS IN SERVICE</div>
+              <div className="text-4xl font-extrabold text-[#002446]">6</div>
             </div>
           </div>
 
           {/* Card 2 */}
-          <div className="bg-white p-6 rounded-xl shadow-[0_1px_3px_rgba(0,0,0,0.05)] border border-gray-100 flex flex-col justify-between h-32">
+          <div className="bg-white p-7 rounded-xl shadow-[0_1px_3px_rgba(0,0,0,0.05)] border border-gray-100 flex flex-col justify-between h-44">
             <div className="flex items-start">
               <div className="w-10 h-10 rounded-lg bg-[#FEE2E2] text-[#B91C1C] flex items-center justify-center">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -136,13 +143,13 @@ export default function ClerkDashboard() {
               </div>
             </div>
             <div>
-              <div className="text-[10px] font-bold text-gray-500 tracking-wider mb-1">PARTS APPROVALS</div>
-              <div className="text-3xl font-bold text-[#0F172A]">3</div>
+              <div className="text-[11px] font-bold text-gray-500 tracking-widest mb-1">PARTS APPROVALS</div>
+              <div className="text-4xl font-extrabold text-[#002446]">3</div>
             </div>
           </div>
 
           {/* Card 3 */}
-          <div className="bg-white p-6 rounded-xl shadow-[0_1px_3px_rgba(0,0,0,0.05)] border border-gray-100 flex flex-col justify-between h-32">
+          <div className="bg-white p-7 rounded-xl shadow-[0_1px_3px_rgba(0,0,0,0.05)] border border-gray-100 flex flex-col justify-between h-44">
             <div className="flex items-start">
               <div className="w-10 h-10 rounded-lg bg-[#E0F2FE] text-[#0284C7] flex items-center justify-center">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -152,15 +159,15 @@ export default function ClerkDashboard() {
               </div>
             </div>
             <div>
-              <div className="text-[10px] font-bold text-gray-500 tracking-wider mb-1">READY FOR PICK-UP</div>
-              <div className="text-3xl font-bold text-[#0F172A]">2</div>
+              <div className="text-[11px] font-bold text-gray-500 tracking-widest mb-1">READY FOR PICK-UP</div>
+              <div className="text-4xl font-extrabold text-[#002446]">2</div>
             </div>
           </div>
 
           {/* Card 4 */}
-          <div className="bg-[#1e293b] p-6 rounded-xl shadow-[0_4px_6px_-1px_rgba(0,0,0,0.1),0_2px_4px_-1px_rgba(0,0,0,0.06)] flex flex-col justify-between h-32">
+          <div className="bg-[#002446] p-7 rounded-xl shadow-[0_10px_15px_-3px_rgba(0,0,0,0.1)] flex flex-col justify-between h-44">
             <div className="flex items-start">
-              <div className="w-10 h-10 rounded-full border border-white/20 bg-transparent flex items-center justify-center text-white">
+              <div className="w-10 h-10 rounded-lg border border-white/10 bg-white/10 flex items-center justify-center text-white">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                   <path d="M12 8V16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -169,8 +176,8 @@ export default function ClerkDashboard() {
               </div>
             </div>
             <div>
-              <div className="text-[10px] font-bold text-gray-300 tracking-wider mb-1">TOTAL REVENUE TODAY</div>
-              <div className="text-2xl font-bold text-white">B 4,280.50</div>
+              <div className="text-[11px] font-bold text-gray-300 tracking-widest mb-1">TOTAL REVENUE TODAY</div>
+              <div className="text-4xl font-normal text-white"><span className="text-2xl mr-1">B</span>4,280.50</div>
             </div>
           </div>
         </div>
@@ -222,8 +229,8 @@ export default function ClerkDashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50 text-sm">
-                {currentServices.map((service, idx) => (
-                  <tr key={idx} className="hover:bg-gray-50/50 transition-colors bg-white">
+                {currentServices.map((service) => (
+                  <tr key={service.id} className="hover:bg-gray-50/50 transition-colors bg-white">
                     <td className="py-4 px-6">
                       <div className="flex items-center">
                         <div className={`w-[4px] h-10 rounded-full ${getStatusColorClass(service.status)} mr-4 flex-shrink-0`}></div>

@@ -43,9 +43,9 @@ export async function findServiceJobDetailById(serviceId: string) {
     `
       SELECT
         sj.service_id,
-        sj.service_type,
+        NULL::text AS service_type,
         sj.start_time,
-        sj.service_status AS service_status,
+        sj.service_status,
         sj.labor_cost,
         sj.end_time,
         sj.service_details,
@@ -59,18 +59,37 @@ export async function findServiceJobDetailById(serviceId: string) {
         v.vehicle_id,
         v.brand,
         v.model,
-        v.plate_number
+        v.plate_number,
+        (
+          SELECT COALESCE(JSON_AGG(JSON_BUILD_OBJECT(
+            'part_id', up."part_id",
+            'part_name', p."part_name",
+            'quantity', up."quantity"
+          )), '[]')
+          FROM "UsePart" up
+          LEFT JOIN "Part" p ON up."part_id" = p."part_id"
+          WHERE up."service_id" = sj."service_id"
+        ) AS parts,
+        (
+          SELECT COALESCE(JSON_AGG(JSON_BUILD_OBJECT(
+            'technician_id', t.employee_id,
+            'name', e.name
+          )), '[]')
+          FROM "AssignTo" at
+          JOIN "Technician" t ON at.technician_id = t.employee_id
+          JOIN "Employee" e ON t.employee_id = e.employee_id
+          WHERE at.service_id = sj.service_id
+        ) AS technicians
       FROM "ServiceJob" sj
       LEFT JOIN "ServiceRequest" sr ON sr.request_id = sj.request_id
       LEFT JOIN "Customer" c ON c.customer_id = sr.customer_id
       LEFT JOIN "Vehicle" v ON v.vehicle_id = sr.vehicle_id
-      WHERE sj.service_id = $1
-      LIMIT 1
+      WHERE sj.service_id = $1 OR sj.request_id = $1
     `,
     [serviceId],
   );
 
-  return result.rows[0];
+  return result.rows;
 }
 
 export async function createServiceJobRecord(data: CreateServiceJobRecord) {

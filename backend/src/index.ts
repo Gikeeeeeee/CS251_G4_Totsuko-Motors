@@ -31,9 +31,23 @@ app.use('/api/employees', employeeRoutes);
 
 // Health Check Route (เอาไว้ให้ FE ยิงมาเทสว่า BE ติดหรือยัง)
 app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'ok', 
-    message: 'Totsuko Motors API is running!' 
+  res.json({
+    status: 'ok',
+    message: 'Totsuko Motors API is running!'
+  });
+});
+
+// Error Handling Middleware
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+  console.error('Error:', err);
+
+  const statusCode = err.statusCode || 500;
+  const message = err.message || 'เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์';
+
+  res.status(statusCode).json({
+    success: false,
+    message,
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
   });
 });
 
