@@ -2,15 +2,22 @@ import { randomUUID } from 'crypto';
 import {
   createServiceJobRecord,
   findServiceJobDetailById,
+  findServiceJobsByRequestId,
   findServiceRequestById,
   updateServiceJobRecord,
   UpdateServiceJobRecord,
+  findAssignTo,
+  createAssignTo,
+  deleteAssignTo,
 } from '../../repo/service/service-job.repo';
 
 export type CreateServiceJobBody = {
+  service_type?: string;
   service_details?: string;
   start_time?: string;
   end_time?: string | null;
+  service_status?: string;
+  labor_cost?: number;
 };
 
 export type UpdateServiceJobBody = {
@@ -70,9 +77,12 @@ export async function createServiceJobForRequest(requestId: string, body: Create
   return createServiceJobRecord({
     serviceId: generateServiceJobId(),
     requestId,
+    serviceType: normalizeOptionalString(body.service_type) ?? 'repair',
     serviceDetails: serviceDetails === null ? undefined : serviceDetails,
     startTime: startTime === null ? undefined : startTime,
     endTime,
+    serviceStatus: normalizeOptionalString(body.service_status) ?? undefined,
+    laborCost: body.labor_cost,
   });
 }
 
@@ -119,4 +129,24 @@ export async function updateServiceJobById(serviceId: string, body: UpdateServic
   }
 
   return updateServiceJobRecord(serviceId, updates);
+}
+
+export async function getServiceJobsByRequest(requestId: string) {
+  return findServiceJobsByRequestId(requestId);
+}
+
+export async function assignTechnician(serviceId: string, technicianId: string) {
+  const job = await findServiceJobDetailById(serviceId);
+  if (!job) throw new Error('Service job not found');
+
+  const existing = await findAssignTo(serviceId, technicianId);
+  if (existing) throw new Error('Technician already assigned to this job');
+
+  return createAssignTo(serviceId, technicianId);
+}
+
+export async function removeTechnician(serviceId: string, technicianId: string) {
+  const deleted = await deleteAssignTo(serviceId, technicianId);
+  if (!deleted) throw new Error('Assignment not found');
+  return deleted;
 }

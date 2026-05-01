@@ -1,0 +1,948 @@
+'use client';
+import React, { useState, useRef, useEffect } from 'react';
+import Image from 'next/image';
+import CarImage from '@/public/car.png';
+import apiClient from '@/services/apiClient';
+
+type Technician = {
+  employeeId: string;
+  name: string;
+  specialization: string;
+};
+
+type Part = {
+  partId: string;
+  name: string;
+  stockQuantity: number;
+  price: number;
+  status: string;
+};
+
+type MockData = {
+  plateNumber: string;
+  name: string;
+  brand: string;
+  model: string;
+  year: number;
+  color: string;
+  problemDescription: string;
+  appointment: {
+    appointmentDate: string;
+  };
+  serviceJobs: string[];
+  otherServices: string[];
+  invoiceItems: { partName: string; stockQuantity: number; qtyUsed: number; price: number }[];
+};
+
+const MOCK: MockData = {
+  plateNumber: '4ขณ 6931',
+  name: 'พีรภัทร เอกดิษฐ์',
+  brand: 'Totoya',
+  model: 'Veroz',
+  year: 2022,
+  color: 'White',
+  problemDescription: 'สังเกตยางใบรถ, ยางระเบิด, แนะให้ฟ้าคนขับเสีย',
+  appointment: {
+    appointmentDate: '12/04/2568',
+  },
+  serviceJobs: [],
+  otherServices: [],
+  invoiceItems: [],
+};
+
+export default function OperatingPage() {
+  const [data, setData] = useState<MockData | null>(null);
+  const [jobs, setJobs] = useState<ServiceJob[]>([]);
+  const [otherItems, setOtherItems] = useState<OtherService[]>([]);
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold" style={{ color: '#1E3A8A' }}>Operating</h1>
+        <button
+          onClick={() => setData((v) => (v ? null : MOCK))}
+          className="px-4 py-1.5 rounded-md text-xs font-semibold transition-colors cursor-pointer"
+          style={{
+            backgroundColor: data ? '#1E3A8A' : '#E2E8F0',
+            color: data ? 'white' : '#64748B',
+          }}
+        >
+          {data ? 'Mock ON' : 'Mock OFF'}
+        </button>
+      </div>
+
+      {data === null ? (
+        <div
+          className="rounded-lg flex items-center justify-center py-10"
+          style={{ backgroundColor: 'transparent', border: '1px solid #E2E8F0' }}
+        >
+          <span className="text-sm text-slate-400">Nothing yet</span>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <div className="flex gap-4">
+
+            {/* แผ่น 1: ป้ายทะเบียน */}
+            <div className="bg-white rounded-xl border border-slate-200 flex flex-col items-center justify-center px-6 py-2 min-w-90">
+              <div className="text-4xl font-bold text-slate-800">{data.plateNumber}</div>
+            </div>
+
+            {/* แผ่น 2: รูปรถ */}
+            <div className="bg-white rounded-xl flex items-center justify-center px-6 py-4 flex-1"
+              style={{ backgroundColor: 'transparent' }}>
+              <Image src={CarImage} alt="car" height={100} style={{ height: '100px', width: 'auto' }} />
+            </div>
+
+            {/* แผ่น 3: ข้อมูลลูกค้า */}
+            <div className="bg-white rounded-xl border border-slate-200 px-5 py-4 w-120 shrink-0">
+              <div className="font-semibold text-slate-800 mb-1">{data.name}</div>
+              <div className="text-[10px] uppercase tracking-widest text-slate-400 mb-1">Vehicle Details</div>
+              <div className="text-sm font-semibold text-slate-700 mb-3">
+                {data.brand} {data.model} {data.year} ({data.color})
+              </div>
+              <div className="border-t border-slate-100 pt-3 text-xs text-slate-500">{data.problemDescription}</div>
+            </div>
+
+          </div>
+
+          {/* Service Job & Other Service */}
+          <div className="mt-4 bg-white rounded-xl border border-slate-200 p-5">
+            <ServiceJobSection jobs={jobs} setJobs={setJobs} />
+            <OtherServiceSection items={otherItems} setItems={setOtherItems} />
+          </div>
+
+          {/* Appointment Card */}
+          <AppointmentCard data={data} />
+
+          {/* Invoice Card */}
+          <InvoiceCard data={data} jobs={jobs} otherItems={otherItems} />
+
+        </div>
+      )}
+    </div>
+  );
+}
+
+function InvoiceCard({ jobs, otherItems }: { data: MockData; jobs: ServiceJob[]; otherItems: OtherService[] }) {
+  const partsMap = new Map<string, { qty: number; price: number; stockQuantity: number }>();
+  for (const job of jobs) {
+    for (const p of job.parts) {
+      const existing = partsMap.get(p.name);
+      if (existing) existing.qty += p.qty;
+      else partsMap.set(p.name, { qty: p.qty, price: p.price, stockQuantity: p.stockQuantity });
+    }
+  }
+  const partRows = Array.from(partsMap.entries()).map(([name, v]) => ({ name, ...v }));
+
+  const serviceMap = new Map<string, number>();
+  for (const item of otherItems) {
+    for (const svcName of item.services) {
+      const mock = MOCK_SERVICES.find(m => m.name === svcName);
+      const price = mock?.price ?? 0;
+      serviceMap.set(svcName, (serviceMap.get(svcName) ?? 0) + price);
+    }
+  }
+  const serviceRows = Array.from(serviceMap.entries()).map(([name, price]) => ({ name, price }));
+
+  const allTechIds = new Set<string>();
+  for (const job of jobs) job.technicians.forEach(t => allTechIds.add(t.employeeId));
+  for (const item of otherItems) item.technicians.forEach(t => allTechIds.add(t.employeeId));
+  const techCount = allTechIds.size;
+  const laborCost = techCount * 400;
+
+  const partsTotal = partRows.reduce((sum, r) => sum + r.price * r.qty, 0);
+  const servicesTotal = serviceRows.reduce((sum, r) => sum + r.price, 0);
+  const subtotal = partsTotal + servicesTotal + laborCost;
+  const tax = subtotal * 0.07;
+  const grand = subtotal + tax;
+
+  const fmt = (n: number) => n.toLocaleString('th-TH', { minimumFractionDigits: 2 });
+
+  return (
+    <div className="bg-white rounded-xl border border-slate-200 p-5">
+      <div className="font-bold text-slate-800 text-base mb-3">Invoice</div>
+      <div className="rounded-xl overflow-hidden border border-blue-100">
+        <div className="grid grid-cols-[2fr_1fr_1fr_1fr] px-5 py-2 text-[10px] uppercase tracking-widest text-slate-600 font-semibold" style={{ backgroundColor: '#AFDCF7' }}>
+          <span>Part Name</span>
+          <span className="text-center">Stock Qty</span>
+          <span className="text-center">Qty used</span>
+          <span className="text-right">Price</span>
+        </div>
+        {partRows.length === 0 ? (
+          <div className="grid grid-cols-[2fr_1fr_1fr_1fr] px-5 py-3 text-sm text-slate-400" style={{ backgroundColor: '#E1F4FF' }}>
+            <span /><span /><span /><span className="text-right">-</span>
+          </div>
+        ) : (
+          partRows.map((r, i) => (
+            <div key={i} className="grid grid-cols-[2fr_1fr_1fr_1fr] px-5 py-1.5 text-sm text-slate-700" style={{ backgroundColor: '#E1F4FF' }}>
+              <span>• {r.name}</span>
+              <span className="text-center">{r.stockQuantity}</span>
+              <span className="text-center">{r.qty}</span>
+              <span className="text-right">{fmt(r.price * r.qty)}</span>
+            </div>
+          ))
+        )}
+        {serviceRows.map((r, i) => (
+          <div key={i} className="grid grid-cols-[2fr_1fr_1fr_1fr] px-5 py-1.5 text-sm text-slate-700" style={{ backgroundColor: '#D9EDF8' }}>
+            <span>• {r.name}</span>
+            <span /><span />
+            <span className="text-right">{fmt(r.price)}</span>
+          </div>
+        ))}
+        <div className="px-5 pt-2 pb-3 bg-white border-t border-blue-100 space-y-0.5">
+          <div className="grid grid-cols-[2fr_1fr_1fr_1fr] text-sm text-slate-700">
+            <span>ค่าแรงรวม {techCount > 0 && <span className="text-slate-400 text-xs">(จำนวน {techCount} คน × 400)</span>}</span>
+            <span /><span />
+            <span className="text-right">{fmt(laborCost)}</span>
+          </div>
+          <div className="grid grid-cols-[2fr_1fr_1fr_1fr] text-sm text-slate-700">
+            <span>ภาษี (7%)</span>
+            <span /><span />
+            <span className="text-right">{fmt(tax)}</span>
+          </div>
+          <div className="grid grid-cols-[2fr_1fr_1fr_1fr] text-sm font-semibold text-slate-800">
+            <span>สรุปรายการ</span>
+            <span /><span />
+            <span className="text-right">{fmt(grand)}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DatePicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  const parseBE = (v: string) => {
+    const [d, m, y] = v.split('/').map(Number);
+    if (!d || !m || !y) return new Date();
+    return new Date(y - 543, m - 1, d);
+  };
+  const formatBE = (date: Date) =>
+    `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear() + 543}`;
+
+  const selected = parseBE(value);
+  const [viewYear, setViewYear] = useState(selected.getFullYear());
+  const [viewMonth, setViewMonth] = useState(selected.getMonth());
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const thaiMonths = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  const firstDay = new Date(viewYear, viewMonth, 1).getDay();
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+  const prevMonth = () => { if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1); } else setViewMonth(m => m - 1); };
+  const nextMonth = () => { if (viewMonth === 11) { setViewMonth(0); setViewYear(y => y + 1); } else setViewMonth(m => m + 1); };
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="w-28 text-center text-sm rounded-lg border border-blue-200 bg-white px-2 py-1 outline-none hover:border-blue-400 cursor-pointer"
+      >
+        {value || 'เลือกวันที่'}
+      </button>
+      {open && (
+        <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-slate-200 rounded-xl shadow-lg p-3 w-56">
+          <div className="flex items-center justify-between mb-2 text-sm font-semibold text-slate-700">
+            <button onClick={prevMonth} className="px-2 py-0.5 rounded hover:bg-slate-100 cursor-pointer">‹</button>
+            <span>{thaiMonths[viewMonth]} {viewYear + 543}</span>
+            <button onClick={nextMonth} className="px-2 py-0.5 rounded hover:bg-slate-100 cursor-pointer">›</button>
+          </div>
+          <div className="grid grid-cols-7 text-center text-[10px] text-slate-400 mb-1">
+            {['อา','จ','อ','พ','พฤ','ศ','ส'].map(d => <div key={d}>{d}</div>)}
+          </div>
+          <div className="grid grid-cols-7 text-center text-xs gap-y-0.5">
+            {Array.from({ length: firstDay }).map((_, i) => <div key={`e${i}`} />)}
+            {Array.from({ length: daysInMonth }).map((_, i) => {
+              const day = i + 1;
+              const isSel = selected.getFullYear() === viewYear && selected.getMonth() === viewMonth && selected.getDate() === day;
+              return (
+                <button key={day}
+                  onClick={() => { onChange(formatBE(new Date(viewYear, viewMonth, day))); setOpen(false); }}
+                  className={`py-1 rounded-full text-[11px] leading-tight cursor-pointer ${isSel ? 'bg-blue-600 text-white' : 'hover:bg-slate-100 text-slate-700'}`}
+                >
+                  {day}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AppointmentCard({ data }: { data: MockData }) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [appt, setAppt] = useState(data.appointment);
+
+  const Field = ({ label, value }: { label: string; value: string }) => (
+    <div>
+      <div className="text-[10px] uppercase tracking-widest text-slate-400 mb-1">{label}</div>
+      <div className="text-sm font-semibold text-slate-800">{value}</div>
+    </div>
+  );
+
+  const DatePickerBox = ({ value, onChange }: { value: string; onChange: (v: string) => void }) =>
+    isEditing
+      ? <DatePicker value={value} onChange={onChange} />
+      : <span className="inline-flex items-center justify-center w-28 rounded-lg bg-white border border-slate-200 text-sm text-slate-500 py-1">{value || '-'}</span>;
+
+  return (
+    <div className="bg-white rounded-xl border border-slate-200 p-5">
+      <div className="flex items-center justify-between mb-4">
+        <div className="font-bold text-slate-800 text-base">Appointment</div>
+        <button
+          onClick={() => setIsEditing((v) => !v)}
+          className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold cursor-pointer"
+          style={{ backgroundColor: '#EFF6FF', color: '#1D4ED8' }}
+        >
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <path d="M8.5 1.5L10.5 3.5L4 10H2V8L8.5 1.5Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+          </svg>
+          {isEditing ? 'Save' : 'Edit'}
+        </button>
+      </div>
+
+      <div className="rounded-xl border border-slate-100 p-4 space-y-4" style={{ backgroundColor: '#F8FAFC' }}>
+        {/* Row 1 */}
+        <div className="grid grid-cols-[1fr_0.8fr_0.8fr_2fr] gap-4 items-start">
+          <Field label="Name" value={data.name} />
+          <Field label="Model" value={data.model} />
+          <Field label="Color" value={data.color} />
+          <div className="w-full">
+            <div className="text-[10px] uppercase tracking-widest text-slate-400 mb-1">Appointment</div>
+            <div className="flex items-center gap-2 flex-wrap text-sm text-slate-700">
+              <span>วันนัด :</span>
+              <DatePickerBox value={appt.appointmentDate} onChange={(v) => setAppt({ ...appt, appointmentDate: v })} />
+            </div>
+          </div>
+        </div>
+
+        {/* Row 2 */}
+        <div className="grid grid-cols-3 gap-4 items-start">
+          <Field label="Plate Number" value={data.plateNumber} />
+          <Field label="Brand" value={data.brand} />
+          <Field label="Year" value={String(data.year)} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Service Job ──────────────────────────────────────────────────────────────
+
+type ServiceJob = {
+  id: number;
+  detail: string;
+  timeStart: string;
+  timeEnd: string;
+  status: 'In Progress' | 'Done' | 'Pending';
+  parts: { partId: string; name: string; qty: number; price: number; stockQuantity: number }[];
+  technicians: { employeeId: string; name: string }[];
+};
+
+
+const MOCK_SERVICES = [
+  { name: 'ล้างรถ',              price: 300  },
+  { name: 'เคลือบสี',            price: 2500 },
+  { name: 'ดูดฝุ่นภายใน',        price: 200  },
+  { name: 'เปลี่ยนน้ำมันเกียร์', price: 800  },
+  { name: 'ตรวจเช็คระบบเบรก',   price: 500  },
+];
+
+function TechnicianPickerModal({ onAdd, onClose, assignedIds = [] }: { onAdd: (tech: { employeeId: string; name: string }) => void; onClose: () => void; assignedIds?: string[] }) {
+  const [search, setSearch] = useState('');
+  const [selected, setSelected] = useState<string | null>(null);
+  const [technicians, setTechnicians] = useState<Technician[]>([]);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    apiClient.get<{ data: Technician[] }>('/technicians/available')
+      .then(res => setTechnicians(res.data.data))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [onClose]);
+
+  const filtered = technicians.filter(t =>
+    t.name.toLowerCase().includes(search.toLowerCase()) ||
+    t.employeeId.includes(search) ||
+    t.specialization.toLowerCase().includes(search.toLowerCase())
+  );
+  const selectedTech = technicians.find(t => t.employeeId === selected);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.25)' }}>
+      <div ref={ref} className="bg-white rounded-2xl shadow-xl w-120 overflow-hidden">
+        <div className="px-4 pt-4 pb-3 border-b border-slate-100">
+          <div className="flex items-center gap-2 rounded-lg px-3 py-2" style={{ backgroundColor: '#F1F5F9' }}>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="text-slate-400 shrink-0">
+              <circle cx="6" cy="6" r="4.5" stroke="currentColor" strokeWidth="1.4"/>
+              <path d="M9.5 9.5L12 12" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+            </svg>
+            <input
+              autoFocus
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="ค้นหาช่าง..."
+              className="flex-1 text-sm bg-transparent outline-none text-slate-700 placeholder-slate-400"
+            />
+          </div>
+        </div>
+        <div className="max-h-60 overflow-y-auto divide-y divide-slate-50">
+          {filtered.map(t => {
+            const isAssigned = assignedIds.includes(t.employeeId);
+            return (
+              <button
+                key={t.employeeId}
+                onClick={() => !isAssigned && setSelected(t.employeeId)}
+                disabled={isAssigned}
+                className={`w-full text-left px-4 py-3 transition-colors ${isAssigned ? 'cursor-not-allowed' : 'cursor-pointer'} ${isAssigned ? '' : selected === t.employeeId ? '' : 'hover:bg-slate-50'}`}
+                style={isAssigned ? { backgroundColor: '#F1F5F9' } : selected === t.employeeId ? { backgroundColor: '#E6F6FF' } : {}}
+              >
+                <div className="flex items-center justify-between">
+                  <span className={`text-sm font-semibold ${isAssigned ? 'text-slate-300' : selected === t.employeeId ? 'text-blue-800' : 'text-slate-800'}`}>{t.name}</span>
+                  <span className={`text-xs ${isAssigned ? 'text-slate-300' : 'text-slate-400'}`}>{t.employeeId}</span>
+                </div>
+                <div className="text-xs text-slate-500 mt-0.5">{t.specialization}</div>
+              </button>
+            );
+          })}
+          {filtered.length === 0 && <div className="px-4 py-6 text-sm text-slate-300 text-center">ไม่พบรายการ</div>}
+        </div>
+        {selectedTech && (
+          <div className="px-4 py-3 border-t border-slate-100 flex items-center justify-between">
+            <div>
+              <div className="text-sm font-semibold text-slate-800">{selectedTech.name}</div>
+              <div className="text-xs text-slate-400">{selectedTech.specialization}</div>
+            </div>
+            <button
+              onClick={() => { onAdd({ employeeId: selectedTech.employeeId, name: selectedTech.name }); onClose(); }}
+              className="text-xs font-semibold text-white px-4 py-1.5 rounded-lg cursor-pointer"
+              style={{ backgroundColor: '#1D4ED8' }}
+            >
+              เพิ่ม
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ServicePickerModal({ onAdd, onClose }: { onAdd: (name: string) => void; onClose: () => void }) {
+  const [search, setSearch] = useState('');
+  const [selected, setSelected] = useState<string | null>(null);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [onClose]);
+
+  const filtered = MOCK_SERVICES.filter(s => s.name.toLowerCase().includes(search.toLowerCase()));
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.25)' }}>
+      <div ref={ref} className="bg-white rounded-2xl shadow-xl w-120 overflow-hidden">
+        <div className="px-4 pt-4 pb-3 border-b border-slate-100">
+          <div className="flex items-center gap-2 rounded-lg px-3 py-2" style={{ backgroundColor: '#F1F5F9' }}>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="text-slate-400 shrink-0">
+              <circle cx="6" cy="6" r="4.5" stroke="currentColor" strokeWidth="1.4"/>
+              <path d="M9.5 9.5L12 12" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+            </svg>
+            <input
+              autoFocus
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="ค้นหา Service..."
+              className="flex-1 text-sm bg-transparent outline-none text-slate-700 placeholder-slate-400"
+            />
+          </div>
+        </div>
+        <div className="max-h-52 overflow-y-auto divide-y divide-slate-50">
+          {filtered.map(s => (
+            <button
+              key={s.name}
+              onClick={() => setSelected(s.name)}
+              className={`w-full text-left px-4 py-3 text-sm transition-colors cursor-pointer ${selected === s.name ? 'font-semibold' : 'text-slate-700 hover:bg-slate-50'}`}
+              style={selected === s.name ? { backgroundColor: '#E6F6FF', color: '#1E3A8A' } : {}}
+            >
+              {s.name}
+            </button>
+          ))}
+          {filtered.length === 0 && <div className="px-4 py-6 text-sm text-slate-300 text-center">ไม่พบรายการ</div>}
+        </div>
+        {selected && (
+          <div className="px-4 py-3 border-t border-slate-100 flex items-center justify-between">
+            <span className="text-sm font-semibold text-slate-700">{selected}</span>
+            <button
+              onClick={() => { onAdd(selected); onClose(); }}
+              className="text-xs font-semibold text-white px-4 py-1.5 rounded-lg cursor-pointer"
+              style={{ backgroundColor: '#1D4ED8' }}
+            >
+              เพิ่ม
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PartPickerModal({ onAdd, onClose }: { onAdd: (part: Part, qty: number) => void; onClose: () => void }) {
+  const [search, setSearch] = useState('');
+  const [selected, setSelected] = useState<Part | null>(null);
+  const [qty, setQty] = useState(1);
+  const [parts, setParts] = useState<Part[]>([]);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    apiClient.get<{ data: Part[] }>('/service/parts')
+      .then(res => setParts(res.data.data))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [onClose]);
+
+  const filtered = parts.filter((p: Part) => p.name.toLowerCase().includes(search.toLowerCase()));
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.25)' }}>
+      <div ref={ref} className="bg-white rounded-2xl shadow-xl w-120 overflow-hidden">
+        <div className="px-4 pt-4 pb-3 border-b border-slate-100">
+          <div className="flex items-center gap-2 rounded-lg px-3 py-2" style={{ backgroundColor: '#F1F5F9' }}>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="text-slate-400 shrink-0">
+              <circle cx="6" cy="6" r="4.5" stroke="currentColor" strokeWidth="1.4" />
+              <path d="M9.5 9.5L12 12" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+            </svg>
+            <input
+              autoFocus
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="ค้นหา Part..."
+              className="flex-1 text-sm bg-transparent outline-none text-slate-700 placeholder-slate-400"
+            />
+          </div>
+        </div>
+        <div className="max-h-52 overflow-y-auto divide-y divide-slate-50">
+          {filtered.map(p => (
+            <button
+              key={p.partId}
+              onClick={() => setSelected(p)}
+              className={`w-full text-left px-4 py-3 text-sm transition-colors ${selected?.partId === p.partId ? 'font-semibold' : 'text-slate-700 hover:bg-slate-50'}`}
+              style={selected?.partId === p.partId ? { backgroundColor: '#E6F6FF', color: '#1E3A8A' } : {}}
+            >
+              {p.name}
+            </button>
+          ))}
+          {filtered.length === 0 && <div className="px-4 py-6 text-sm text-slate-300 text-center">ไม่พบรายการ</div>}
+        </div>
+        {selected && (
+          <div className="px-4 py-3 border-t border-slate-100 flex items-center gap-3">
+            <span className="text-xs text-slate-500 flex-1 truncate">{selected.name}</span>
+            <div className="flex items-center gap-2">
+              <button onClick={() => setQty(q => Math.max(1, q - 1))} className="w-6 h-6 rounded-full bg-slate-100 text-slate-600 text-sm font-bold flex items-center justify-center hover:bg-slate-200 cursor-pointer">−</button>
+              <span className="text-sm font-semibold w-5 text-center">{qty}</span>
+              <button onClick={() => setQty(q => q + 1)} className="w-6 h-6 rounded-full bg-slate-100 text-slate-600 text-sm font-bold flex items-center justify-center hover:bg-slate-200 cursor-pointer">+</button>
+            </div>
+            <button
+              onClick={() => { onAdd(selected, qty); onClose(); }}
+              className="text-xs font-semibold text-white px-3 py-1.5 rounded-lg cursor-pointer"
+              style={{ backgroundColor: '#1D4ED8' }}
+            >
+              เพิ่ม
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ServiceJobSection({ jobs, setJobs }: { jobs: ServiceJob[]; setJobs: React.Dispatch<React.SetStateAction<ServiceJob[]>> }) {
+  const addJob = () =>
+    setJobs(prev => [...prev, {
+      id: prev.length + 1,
+      detail: '',
+      timeStart: '',
+      timeEnd: '',
+      status: 'In Progress',
+      parts: [],
+      technicians: [],
+    }]);
+
+  const updateJob = (id: number, updated: ServiceJob) =>
+    setJobs(prev => prev.map(j => (j.id === id ? updated : j)));
+
+  const handleSaveJob = async (job: ServiceJob) => {
+    const laborCost = job.technicians.length * 200;
+
+    const { data: res } = await apiClient.post('/service/REQ-001/service-job', {
+      service_type: 'repair',
+      service_details: job.detail,
+      start_time: job.timeStart || null,
+      end_time: job.timeEnd || null,
+      service_status: job.status,
+      labor_cost: laborCost,
+    });
+    const jobId: string = res.data.service_id;
+
+    await Promise.all([
+      ...job.parts.map(p =>
+        apiClient.post(`/service/service-job/${jobId}/parts`, {
+          part_id: p.partId,
+          quantity: p.qty,
+        })
+      ),
+      ...job.technicians.map(t =>
+        apiClient.post(`/service/service-job/${jobId}/assign`, {
+          technicianId: t.employeeId,
+        })
+      ),
+    ]);
+  };
+
+  return (
+    <div className="mb-5">
+      <div className="font-bold text-slate-800 mb-3">Service Job</div>
+      {jobs.length === 0 && (
+        <div className="rounded-lg border border-slate-200 flex items-center justify-center py-7 mb-3">
+          <span className="text-sm text-slate-300">Nothing yet</span>
+        </div>
+      )}
+      <div className="space-y-3 mb-3">
+        {jobs.map(job => (
+          <ServiceJobCard key={job.id} job={job} onChange={updated => updateJob(job.id, updated)} onDelete={() => setJobs(prev => prev.filter(j => j.id !== job.id))} onSave={handleSaveJob} />
+        ))}
+      </div>
+      <button
+        onClick={addJob}
+        className="w-full py-3 rounded-lg text-sm font-semibold text-white cursor-pointer"
+        style={{ background: 'linear-gradient(to right, #002446, #1A3A5F)' }}
+      >
+        + Add Service Job Detail
+      </button>
+    </div>
+  );
+}
+
+const handleSubmit = () => {
+  // Here you would typically gather all the data and send it to your backend API
+  alert('Data submitted! Check console for details.');
+}
+
+function ServiceJobCard({ job, onChange, onDelete, onSave }: { job: ServiceJob; onChange: (j: ServiceJob) => void; onDelete: () => void; onSave: (job: ServiceJob) => void }) {
+  const [showPartModal, setShowPartModal] = useState(false);
+  const [showTechModal, setShowTechModal] = useState(false);
+
+  const statusColors: Record<ServiceJob['status'], string> = {
+    'In Progress': '#FEF3C7',
+    'Done': '#D1FAE5',
+    'Pending': '#F1F5F9',
+  };
+  const statusTextColors: Record<ServiceJob['status'], string> = {
+    'In Progress': '#92400E',
+    'Done': '#065F46',
+    'Pending': '#475569',
+  };
+
+  return (
+    <div className="rounded-xl border border-blue-100 overflow-hidden" style={{ backgroundColor: '#E6F6FF' }}>
+      <div className="flex items-center gap-3 px-4 py-3 flex-wrap">
+        <span className="font-bold text-slate-800 text-sm">Service Job detail {job.id}</span>
+        <button onClick={onDelete} className="text-slate-300 hover:text-red-400 transition-colors cursor-pointer" title="ลบ">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2L12 12M12 2L2 12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/></svg>
+        </button>
+        <div className="flex items-center gap-2 ml-auto">
+          <svg width="15" height="15" viewBox="0 0 15 15" fill="none" className="text-slate-400">
+            <circle cx="7.5" cy="7.5" r="6.5" stroke="currentColor" strokeWidth="1.2" />
+            <path d="M7.5 4.5V7.5L9.5 9.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+          </svg>
+          <span className="text-red-400 -ml-1">*</span>
+          <DatePicker value={job.timeStart} onChange={v => onChange({ ...job, timeStart: v })} />
+          <span className="text-slate-400">-</span>
+          <DatePicker value={job.timeEnd} onChange={v => onChange({ ...job, timeEnd: v })} />
+          <select
+            value={job.status}
+            onChange={e => onChange({ ...job, status: e.target.value as ServiceJob['status'] })}
+            className="text-xs font-semibold rounded-full px-3 py-1 border-0 outline-none cursor-pointer"
+            style={{ backgroundColor: statusColors[job.status], color: statusTextColors[job.status] }}
+          >
+            <option value="In Progress">In Progress</option>
+            <option value="Done">Done</option>
+            <option value="Pending">Pending</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="px-4 pb-3">
+        <div className="text-xs font-semibold text-slate-600 mb-1">Detail <span className="text-red-400">*</span></div>
+        <input
+          value={job.detail}
+          onChange={e => onChange({ ...job, detail: e.target.value })}
+          placeholder="รายละเอียดงาน..."
+          className="w-full text-sm rounded-lg border border-blue-200 bg-white px-3 py-2 outline-none focus:border-blue-400"
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 px-4 pb-4">
+        <div>
+          {showPartModal && (
+            <PartPickerModal
+              onAdd={(part, qty) => {
+                const existing = job.parts.findIndex(p => p.name === part.name);
+                if (existing >= 0) {
+                  const updated = job.parts.map((p, i) => i === existing ? { ...p, qty: p.qty + qty } : p);
+                  onChange({ ...job, parts: updated });
+                } else {
+                  onChange({ ...job, parts: [...job.parts, { partId: part.partId, name: part.name, qty, price: part.price, stockQuantity: part.stockQuantity }] });
+                }
+              }}
+              onClose={() => setShowPartModal(false)}
+            />
+          )}
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-slate-600">Part <span className="text-red-400">*</span></span>
+            <button onClick={() => setShowPartModal(true)} className="text-xs font-semibold px-3 py-1 rounded-lg cursor-pointer" style={{ backgroundColor: '#97D2FF', color: '#1E3A8A' }}>
+              + Add Part
+            </button>
+          </div>
+          <div className="rounded-lg border border-blue-100 bg-white min-h-0 divide-y divide-blue-50">
+            {job.parts.length === 0 && <span className="text-xs text-slate-300 p-2 block">ยังไม่มี Part</span>}
+            {job.parts.map((p, i) => (
+              <div key={i} className="text-xs text-slate-700 flex items-center justify-between px-2 py-2">
+                <span><span className="text-slate-400 mr-1">•</span>{p.name} <span className="text-slate-400">×{p.qty}</span></span>
+                <button onClick={() => onChange({ ...job, parts: job.parts.filter((_, idx) => idx !== i) })} className="text-slate-300 hover:text-red-400 ml-2 cursor-pointer">✕</button>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          {showTechModal && (
+            <TechnicianPickerModal
+              onAdd={tech => onChange({ ...job, technicians: [...job.technicians, tech] })}
+              onClose={() => setShowTechModal(false)}
+              assignedIds={job.technicians.map(t => t.employeeId)}
+            />
+          )}
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-slate-600">Assignment <span className="text-red-400">*</span></span>
+            <button onClick={() => setShowTechModal(true)} className="text-xs font-semibold px-3 py-1 rounded-lg cursor-pointer" style={{ backgroundColor: '#97D2FF', color: '#1E3A8A' }}>
+              + Add Technician
+            </button>
+          </div>
+          <div className="rounded-lg border border-blue-100 overflow-hidden">
+            <div className="grid grid-cols-2 text-[10px] uppercase tracking-widest text-slate-600 font-semibold px-3 py-1.5" style={{ backgroundColor: '#97D2FF' }}>
+              <span>ID</span>
+              <span>Name</span>
+            </div>
+            {job.technicians.length === 0 ? (
+              <div className="grid grid-cols-2 px-3 py-2 text-xs text-slate-300 bg-white">
+                <span>ID</span><span>ชื่อช่าง</span>
+              </div>
+            ) : (
+              job.technicians.map((t, i) => (
+                <div key={i} className="grid grid-cols-2 px-3 py-1.5 text-xs text-slate-700 bg-white border-t border-blue-50">
+                  <span>{t.employeeId}</span>
+                  <span className="flex items-center justify-between">
+                    {t.name}
+                    <button onClick={() => onChange({ ...job, technicians: job.technicians.filter((_, idx) => idx !== i) })} className="text-slate-300 hover:text-red-400 cursor-pointer">✕</button>
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+      <div className="px-4 pb-4 flex justify-end">
+        <button
+          onClick={() => onSave(job)}
+          className="text-xs font-semibold text-white px-5 py-2 rounded-lg cursor-pointer"
+          style={{ backgroundColor: '#1D4ED8' }}
+        >
+          บันทึก
+        </button> 
+      </div> {/* //พอพร้อมจะ connect API จริงค่อยแทนที่ตรง 612 ได้` */}
+    </div>
+  );
+}
+
+// ─── Other Service ────────────────────────────────────────────────────────────
+
+type OtherService = {
+  id: number;
+  dateStart: string;
+  dateEnd: string;
+  status: 'In Progress' | 'Done' | 'Pending';
+  services: string[];
+  technicians: { employeeId: string; name: string }[];
+};
+
+function OtherServiceSection({ items, setItems }: { items: OtherService[]; setItems: React.Dispatch<React.SetStateAction<OtherService[]>> }) {
+  const addItem = () =>
+    setItems(prev => [...prev, {
+      id: prev.length + 1,
+      dateStart: '', dateEnd: '',
+      status: 'In Progress',
+      services: [], technicians: [],
+    }]);
+
+  const updateItem = (id: number, updated: OtherService) =>
+    setItems(prev => prev.map(s => (s.id === id ? updated : s)));
+
+  return (
+    <div>
+      <div className="font-bold text-slate-800 mb-3">Other Service</div>
+      {items.length === 0 && (
+        <div className="rounded-lg border border-slate-200 flex items-center justify-center py-7 mb-3">
+          <span className="text-sm text-slate-300">Nothing yet</span>
+        </div>
+      )}
+      <div className="space-y-3 mb-3">
+        {items.map(item => (
+          <OtherServiceCard
+            key={item.id}
+            item={item}
+            onChange={updated => updateItem(item.id, updated)}
+            onDelete={() => setItems(prev => prev.filter(s => s.id !== item.id))}
+          />
+        ))}
+      </div>
+      <button
+        onClick={addItem}
+        className="w-full py-3 rounded-lg text-sm font-semibold text-white cursor-pointer"
+        style={{ background: 'linear-gradient(to right, #002446, #1A3A5F)' }}
+      >
+        + Add Service
+      </button>
+    </div>
+  );
+}
+
+function OtherServiceCard({ item, onChange, onDelete }: { item: OtherService; onChange: (s: OtherService) => void; onDelete: () => void }) {
+  const [showServiceModal, setShowServiceModal] = useState(false);
+  const [showTechModal, setShowTechModal] = useState(false);
+
+  const statusColors: Record<OtherService['status'], string> = {
+    'In Progress': '#FEF3C7', 'Done': '#D1FAE5', 'Pending': '#F1F5F9',
+  };
+  const statusTextColors: Record<OtherService['status'], string> = {
+    'In Progress': '#92400E', 'Done': '#065F46', 'Pending': '#475569',
+  };
+
+  return (
+    <div className="rounded-xl border border-blue-100 overflow-hidden" style={{ backgroundColor: '#E6F6FF' }}>
+      <div className="flex items-center gap-3 px-4 py-3 flex-wrap">
+        <span className="font-bold text-slate-800 text-sm">Service {item.id}</span>
+        <button onClick={onDelete} className="text-slate-300 hover:text-red-400 transition-colors cursor-pointer">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2L12 12M12 2L2 12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/></svg>
+        </button>
+        <div className="flex items-center gap-2 ml-auto">
+          <svg width="15" height="15" viewBox="0 0 15 15" fill="none" className="text-slate-400">
+            <circle cx="7.5" cy="7.5" r="6.5" stroke="currentColor" strokeWidth="1.2"/>
+            <path d="M7.5 4.5V7.5L9.5 9.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+          </svg>
+          <span className="text-red-400 -ml-1">*</span>
+          <DatePicker value={item.dateStart} onChange={v => onChange({ ...item, dateStart: v })} />
+          <span className="text-slate-400">-</span>
+          <DatePicker value={item.dateEnd} onChange={v => onChange({ ...item, dateEnd: v })} />
+          <select value={item.status} onChange={e => onChange({ ...item, status: e.target.value as OtherService['status'] })}
+            className="text-xs font-semibold rounded-full px-3 py-1 border-0 outline-none cursor-pointer"
+            style={{ backgroundColor: statusColors[item.status], color: statusTextColors[item.status] }}>
+            <option value="In Progress">In Progress</option>
+            <option value="Done">Done</option>
+            <option value="Pending">Pending</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 px-4 pb-4">
+        <div>
+          {showServiceModal && (
+            <ServicePickerModal
+              onAdd={name => onChange({ ...item, services: [...item.services, name] })}
+              onClose={() => setShowServiceModal(false)}
+            />
+          )}
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-slate-600">Service <span className="text-red-400">*</span></span>
+            <button onClick={() => setShowServiceModal(true)} className="text-xs font-semibold px-3 py-1 rounded-lg cursor-pointer" style={{ backgroundColor: '#97D2FF', color: '#1E3A8A' }}>
+              + Add Service
+            </button>
+          </div>
+          <div className="rounded-lg border border-blue-100 bg-white min-h-0 divide-y divide-blue-50">
+            {item.services.length === 0 && <span className="text-xs text-slate-300 p-2 block">ยังไม่มีรายการ</span>}
+            {item.services.map((s, i) => (
+              <div key={i} className="text-xs text-slate-700 flex items-center justify-between px-2 py-2">
+                <span>{s}</span>
+                <button onClick={() => onChange({ ...item, services: item.services.filter((_, idx) => idx !== i) })} className="text-slate-300 hover:text-red-400 ml-2 cursor-pointer">✕</button>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          {showTechModal && (
+            <TechnicianPickerModal
+              onAdd={tech => onChange({ ...item, technicians: [...item.technicians, tech] })}
+              onClose={() => setShowTechModal(false)}
+              assignedIds={item.technicians.map(t => t.employeeId)}
+            />
+          )}
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-slate-600">Assignment <span className="text-red-400">*</span></span>
+            <button onClick={() => setShowTechModal(true)} className="text-xs font-semibold px-3 py-1 rounded-lg cursor-pointer" style={{ backgroundColor: '#97D2FF', color: '#1E3A8A' }}>
+              + Add Technician
+            </button>
+          </div>
+          <div className="rounded-lg border border-blue-100 overflow-hidden">
+            <div className="grid grid-cols-2 text-[10px] uppercase tracking-widest text-slate-600 font-semibold px-3 py-1.5" style={{ backgroundColor: '#97D2FF' }}>
+              <span>ID</span><span>Name</span>
+            </div>
+            {item.technicians.length === 0 ? (
+              <div className="grid grid-cols-2 px-3 py-2 text-xs text-slate-300 bg-white">
+                <span>ID</span><span>ชื่อช่าง</span>
+              </div>
+            ) : (
+              item.technicians.map((t, i) => (
+                <div key={i} className="grid grid-cols-2 px-3 py-1.5 text-xs text-slate-700 bg-white border-t border-blue-50">
+                  <span>{t.employeeId}</span>
+                  <span className="flex items-center justify-between">
+                    {t.name}
+                    <button onClick={() => onChange({ ...item, technicians: item.technicians.filter((_, idx) => idx !== i) })} className="text-slate-300 hover:text-red-400 cursor-pointer">✕</button>
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

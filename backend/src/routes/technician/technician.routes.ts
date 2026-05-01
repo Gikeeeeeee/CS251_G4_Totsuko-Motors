@@ -9,7 +9,7 @@ import { authMiddleware } from '../../middlewares/auth.middleware';
 const router = Router();
 
 // GET /api/technicians/available - ดึงช่างที่ว่าง
-router.get('/available', authMiddleware, handleGetAvailableTechnicians);
+router.get('/available'/*authMiddleware */,handleGetAvailableTechnicians);
 
 // GET /api/technicians - ดึงช่างทั้งหมด
 router.get('/', authMiddleware, handleGetAllTechnicians);
