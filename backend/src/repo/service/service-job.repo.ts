@@ -35,6 +35,60 @@ export async function findServiceRequestById(requestId: string) {
   return result.rows[0];
 }
 
+export async function findServiceJobDetailById(serviceId: string) {
+  const result = await pool.query(
+    `
+      SELECT
+        sj.service_id,
+        NULL::text AS service_type,
+        sj.start_time,
+        sj.service_status,
+        sj.labor_cost,
+        sj.end_time,
+        sj.service_details,
+        sj.request_id,
+        sr.request_status,
+        sr.problem_description,
+        sr.odometer,
+        c.customer_id,
+        c.name AS customer_name,
+        c.phone AS customer_phone,
+        v.vehicle_id,
+        v.brand,
+        v.model,
+        v.plate_number,
+        (
+          SELECT COALESCE(JSON_AGG(JSON_BUILD_OBJECT(
+            'part_id', up."part_id",
+            'part_name', p."part_name",
+            'quantity', up."quantity"
+          )), '[]')
+          FROM "UsePart" up
+          LEFT JOIN "Part" p ON up."part_id" = p."part_id"
+          WHERE up."service_id" = sj."service_id"
+        ) AS parts,
+        (
+          SELECT COALESCE(JSON_AGG(JSON_BUILD_OBJECT(
+            'technician_id', t.employee_id,
+            'name', e.name
+          )), '[]')
+          FROM "AssignTo" at
+          JOIN "Technician" t ON at.technician_id = t.employee_id
+          JOIN "Employee" e ON t.employee_id = e.employee_id
+          WHERE at.service_id = sj.service_id
+        ) AS technicians
+      FROM "ServiceJob" sj
+      LEFT JOIN "ServiceRequest" sr ON sr.request_id = sj.request_id
+      LEFT JOIN "Customer" c ON c.customer_id = sr.customer_id
+      LEFT JOIN "Vehicle" v ON v.vehicle_id = sr.vehicle_id
+      WHERE sj.service_id = $1 OR sj.request_id = $1
+    `,
+    [serviceId],
+  );
+
+  return result.rows;
+}
+
 export async function createServiceJobRecord(data: CreateServiceJobRecord) {
   const result = await pool.query(
     `
@@ -42,7 +96,7 @@ export async function createServiceJobRecord(data: CreateServiceJobRecord) {
         service_id,
         start_time,
         service_details,
-        job_status,
+        service_status,
         labor_cost,
         end_time,
         request_id
@@ -67,7 +121,7 @@ export async function createServiceJobRecord(data: CreateServiceJobRecord) {
 export async function updateServiceJobRecord(serviceId: string, updates: UpdateServiceJobRecord) {
   const columns: UpdateColumn[] = [
     { column: 'service_details', value: updates.serviceDetails },
-    { column: 'job_status', value: updates.jobStatus },
+    { column: 'service_status', value: updates.jobStatus },
     { column: 'labor_cost', value: updates.laborCost },
     { column: 'start_time', value: updates.startTime },
     { column: 'end_time', value: updates.endTime },

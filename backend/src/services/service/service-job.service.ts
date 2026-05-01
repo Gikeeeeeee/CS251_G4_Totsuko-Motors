@@ -1,6 +1,7 @@
 import { randomUUID } from 'crypto';
 import {
   createServiceJobRecord,
+  findServiceJobDetailById,
   findServiceRequestById,
   updateServiceJobRecord,
   UpdateServiceJobRecord,
@@ -73,6 +74,16 @@ export async function createServiceJobForRequest(requestId: string, body: Create
     startTime: startTime === null ? undefined : startTime,
     endTime,
   });
+}
+
+export async function getServiceJobById(serviceId: string) {
+  const serviceJob = await findServiceJobDetailById(serviceId);
+
+  if (!serviceJob || (Array.isArray(serviceJob) && serviceJob.length === 0)) {
+    throw new Error('Service job not found');
+  }
+
+  return serviceJob;
 }
 
 export async function updateServiceJobById(serviceId: string, body: UpdateServiceJobBody) {

@@ -9,7 +9,7 @@ export type CreatePartUsageRecord = {
 export async function createPartUsageRecord(data: CreatePartUsageRecord) {
   const result = await pool.query(
     `
-      INSERT INTO "use_part" (part_id, job_id, quantity)
+      INSERT INTO "UsePart" (part_id, service_id, quantity)
       VALUES ($1, $2, $3)
       RETURNING *
     `,
