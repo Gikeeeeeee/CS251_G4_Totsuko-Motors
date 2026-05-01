@@ -55,10 +55,6 @@ export const logout = (req: AuthRequest, res: Response, next: NextFunction) => {
 
 export const verify = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-<<<<<<< HEAD
-=======
-   
->>>>>>> ee4cb16d0332328b098140b08b135159a09413bf
     const user = await db.select({
       userId: userAccount.userId,
       employeeId: employee.employeeId,

@@ -2,10 +2,7 @@ import { randomUUID } from 'crypto';
 import {
   createServiceJobRecord,
   findServiceJobDetailById,
-<<<<<<< HEAD
   findServiceJobsByRequestId,
-=======
->>>>>>> ee4cb16d0332328b098140b08b135159a09413bf
   findServiceRequestById,
   updateServiceJobRecord,
   replaceUseParts,

@@ -1,9 +1,5 @@
 import { Router } from 'express';
-<<<<<<< HEAD
 import { getServiceRequests, getServiceRequestByIdController } from '../../controllers/service/dashboard-detail.controller';
-=======
-import { getServiceRequests } from '../../controllers/service/dashboard-detail.controller';
->>>>>>> ee4cb16d0332328b098140b08b135159a09413bf
 import { createUsePart } from '../../controllers/service/part-usage.controller';
 import {
   createServiceJob,
