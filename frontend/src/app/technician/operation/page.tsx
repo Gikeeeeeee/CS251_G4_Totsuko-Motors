@@ -312,6 +312,11 @@ function InvoiceCard({ jobs, otherItems }: { data: MockData; jobs: ServiceJob[];
     lineItems.push({ details: 'ภาษี 7%', amount: tax });
   }
 
+  const canSendInvoice =
+    jobs.length > 0 &&
+    jobs.every((job) => job.status === 'Done') &&
+    otherItems.every((item) => item.status === 'Done');
+
   const handleSendToClerk = async () => {
     setIsSending(true);
     setSendError(null);
@@ -337,8 +342,8 @@ function InvoiceCard({ jobs, otherItems }: { data: MockData; jobs: ServiceJob[];
         <div className="font-bold text-slate-800 text-base">Invoice</div>
         <button
           onClick={handleSendToClerk}
-          disabled={isSending || sentToClerk}
-          className={`text-xs font-semibold text-white px-4 py-2 rounded-lg ${sentToClerk ? 'bg-slate-400 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700 cursor-pointer'}`}
+          disabled={isSending || sentToClerk || !canSendInvoice}
+          className={`text-xs font-semibold text-white px-4 py-2 rounded-lg ${sentToClerk || !canSendInvoice ? 'bg-slate-400 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700 cursor-pointer'}`}
         >
           {sentToClerk ? 'Sent to Clerk' : isSending ? 'Sending...' : 'Send to Clerk'}
         </button>
