@@ -4,12 +4,11 @@ import Link from 'next/link'
 import apiClient from '@/services/apiClient';
 import styles from './page.module.css';
 
-
-
 export default async function ServiceDetailDynamic({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
   let apiData = null;
+
   try {
     const [requestRes, invoiceRes, apptRes, jobRes] = await Promise.allSettled([
       apiClient.get('/service/service-request?limit=1000'),
@@ -36,6 +35,7 @@ export default async function ServiceDetailDynamic({ params }: { params: Promise
         estimatedHours: "-",
         estimatedMins: "-"
       };
+
       if (apptData && Array.isArray(apptData) && apptData.length > 0) {
         const firstAppt = apptData[0];
         if (firstAppt.appointmentDate) {
@@ -45,60 +45,72 @@ export default async function ServiceDetailDynamic({ params }: { params: Promise
 
       // Process Invoice
       let invoiceObj = {
-        parts: [],
+        parts: [] as any[],
         labor: "0.00",
         tax: "0.00",
         total: "0.00"
       };
-      if (invoiceData) {
-        invoiceObj.total = invoiceData.total_amount || invoiceData.totalAmount || "0.00";
-        // Calculate tax roughly or leave as 0.00 if API doesn't provide
-        const totalNum = parseFloat(invoiceObj.total);
-        if (!isNaN(totalNum)) {
-          invoiceObj.labor = totalNum.toFixed(2);
-          invoiceObj.tax = (totalNum * 0.07).toFixed(2);
-          invoiceObj.total = (totalNum + parseFloat(invoiceObj.tax)).toFixed(2);
-        }
 
-        if (invoiceData.invoiceDetails && Array.isArray(invoiceData.invoiceDetails)) {
+      if (invoiceData) {
+        invoiceObj.total = parseFloat(invoiceData.total_amount || invoiceData.totalAmount || "0").toLocaleString('th-TH', { minimumFractionDigits: 2 });
+        
+        if (invoiceData.details && Array.isArray(invoiceData.details)) {
+          let laborTotal = 0;
+          let taxTotal = 0;
+          const partsList: any[] = [];
+
+          invoiceData.details.forEach((detail: any) => {
+            const detailText = detail.details || "";
+            if (detailText.includes("ค่าแรง")) {
+              laborTotal += parseFloat(detail.amount || "0");
+            } else if (detailText.includes("ภาษี")) {
+              taxTotal += parseFloat(detail.amount || "0");
+            } else {
+              const matchQty = detailText.match(/x(\d+)/);
+              const qty = matchQty ? parseInt(matchQty[1]) : 1;
+              let cleanName = detailText.replace(/x\d+ @ .*$/, "").trim();
+              cleanName = cleanName.replace(/^(อะไหล่|งาน)\s*/, "");
+              
+              partsList.push({
+                name: cleanName || "-",
+                qty: qty,
+                price: parseFloat(detail.amount || "0").toLocaleString('th-TH', { minimumFractionDigits: 2 })
+              });
+            }
+          });
+
+          invoiceObj.parts = partsList;
+          invoiceObj.labor = laborTotal.toLocaleString('th-TH', { minimumFractionDigits: 2 });
+          invoiceObj.tax = taxTotal.toLocaleString('th-TH', { minimumFractionDigits: 2 });
+        } else if (invoiceData.invoiceDetails && Array.isArray(invoiceData.invoiceDetails)) {
           invoiceObj.parts = invoiceData.invoiceDetails.map((detail: any) => ({
             name: detail.details || "-",
             qty: 1,
-            price: detail.amount || "0.00"
+            price: parseFloat(detail.amount || "0").toLocaleString('th-TH', { minimumFractionDigits: 2 })
           }));
         }
       }
 
       // Process Job
       let jobsArr: any[] = [];
+      
+      const processJobData = (job: any) => ({
+        id: job.service_id || job.serviceId || "-",
+        type: job.service_type || job.serviceType || "repair",
+        startDateRaw: job.start_time || job.startTime,
+        endDateRaw: job.end_time || job.endTime,
+        startDate: job.start_time || job.startTime ? new Date(job.start_time || job.startTime).toLocaleDateString('th-TH') : "-",
+        endDate: job.end_time || job.endTime ? new Date(job.end_time || job.endTime).toLocaleDateString('th-TH') : "-",
+        status: job.service_status || job.serviceStatus || "Pending",
+        detail: job.service_details || job.serviceDetails || "-",
+        assignments: job.technicians ? job.technicians.map((t: any) => ({ id: t.employeeId || t.technician_id, name: t.name })) : [],
+        parts: job.parts ? job.parts.map((p: any) => ({ part_name: p.partName || p.part_name, quantity: p.quantity || p.qty })) : [],
+      });
+
       if (jobData && Array.isArray(jobData)) {
-        jobsArr = jobData.map((job: any) => ({
-          id: job.service_id || job.serviceId || "-",
-          startDateRaw: job.start_time || job.startTime,
-          endDateRaw: job.end_time || job.endTime,
-          startDate: job.start_time || job.startTime ? new Date(job.start_time || job.startTime).toLocaleDateString('th-TH') : "-",
-          endDate: job.end_time || job.endTime ? new Date(job.end_time || job.endTime).toLocaleDateString('th-TH') : "-",
-          status: job.service_status || job.serviceStatus || "Pending",
-          detail: job.service_details || job.serviceDetails || "-",
-          assignments: job.technicians ? job.technicians.map((t: any) => ({ id: t.technician_id, name: t.name })) : [],
-          parts: job.parts || [],
-          part: job.parts && job.parts.length > 0 ? job.parts[0].part_name : "-",
-          qty: job.parts && job.parts.length > 0 ? job.parts[0].quantity : 0
-        }));
+        jobsArr = jobData.map(processJobData);
       } else if (jobData && (jobData.service_id || jobData.serviceId)) {
-        jobsArr.push({
-          id: jobData.service_id || jobData.serviceId || "-",
-          startDateRaw: jobData.start_time || jobData.startTime,
-          endDateRaw: jobData.end_time || jobData.endTime,
-          startDate: jobData.start_time || jobData.startTime ? new Date(jobData.start_time || jobData.startTime).toLocaleDateString('th-TH') : "-",
-          endDate: jobData.end_time || jobData.endTime ? new Date(jobData.end_time || jobData.endTime).toLocaleDateString('th-TH') : "-",
-          status: jobData.service_status || jobData.serviceStatus || "Pending",
-          detail: jobData.service_details || jobData.serviceDetails || "-",
-          assignments: jobData.technicians ? jobData.technicians.map((t: any) => ({ id: t.technician_id, name: t.name })) : [],
-          parts: jobData.parts || [],
-          part: jobData.parts && jobData.parts.length > 0 ? jobData.parts[0].part_name : "-",
-          qty: jobData.parts && jobData.parts.length > 0 ? jobData.parts[0].quantity : 0
-        });
+        jobsArr.push(processJobData(jobData));
       }
 
       // Calculate estimated repair time from "In Progress" jobs
@@ -117,7 +129,7 @@ export default async function ServiceDetailDynamic({ params }: { params: Promise
           if (sTime < earliestStart) earliestStart = sTime;
           if (eTime > latestEnd) latestEnd = eTime;
         });
-        
+
         if (latestEnd > earliestStart) {
           const diffMs = latestEnd - earliestStart;
           const diffMins = Math.floor(diffMs / (1000 * 60));
@@ -133,12 +145,12 @@ export default async function ServiceDetailDynamic({ params }: { params: Promise
 
       apiData = {
         id: match.requestId,
-        customer: match.customerName || "-",
-        model: match.vehicleDetail?.model || match.vehicleModel || "-",
-        color: match.vehicleDetail?.color || match.vehicleColor || "-",
+        customer: match.customerName || match.name || "-",
+        model: match.vehicleDetail?.model || match.vehicleModel || match.model || "-",
+        color: match.vehicleDetail?.color || match.vehicleColor || match.color || "-",
         plate: match.vehicleDetail?.plateNumber || match.plateNumber || "-",
-        vehicleName: match.vehicleDetail?.brand || match.vehicleMake || "-",
-        year: match.vehicleDetail?.year || match.vehicleYear || "-",
+        vehicleName: match.vehicleDetail?.brand || match.vehicleMake || match.brand || "-",
+        year: match.vehicleDetail?.year || match.vehicleYear || match.year || "-",
         appointment: apptObj,
         jobs: jobsArr,
         invoice: invoiceObj
@@ -148,7 +160,6 @@ export default async function ServiceDetailDynamic({ params }: { params: Promise
     console.error(`Error fetching service detail for ${id}:`, error);
   }
 
-  // Only use API data or a default empty structure if not found
   const data = apiData || {
     id: id,
     customer: "ไม่พบข้อมูลในระบบ",
@@ -188,9 +199,7 @@ export default async function ServiceDetailDynamic({ params }: { params: Promise
             </div>
           </div>
 
-          {/* Customer Info Card */}
           <div className={styles.infoCard}>
-            {/* Left Side */}
             <div className={styles.infoGrid}>
               <div>
                 <div className={styles.infoLabel}>NAME</div>
@@ -218,7 +227,6 @@ export default async function ServiceDetailDynamic({ params }: { params: Promise
               </div>
             </div>
 
-            {/* Right Side */}
             <div className={styles.appointmentSection}>
               <div className={styles.infoLabel}>APPOINTMENT</div>
               <div className={styles.appointmentRows}>
@@ -241,7 +249,6 @@ export default async function ServiceDetailDynamic({ params }: { params: Promise
             </div>
           </div>
 
-          {/* Service Job Section */}
           <h2 className={styles.sectionTitle}>Service Job</h2>
           <div className={styles.jobSection}>
             {data.jobs.length === 0 ? (
@@ -250,7 +257,7 @@ export default async function ServiceDetailDynamic({ params }: { params: Promise
               data.jobs.map((job: any) => (
                 <div key={job.id} className={styles.jobCard}>
                   <div className={styles.jobHeader}>
-                    <h3 className={styles.jobTitle}>Service Job detail {job.id}</h3>
+                    <h3 className={styles.jobTitle}>{job.type === 'otherjob' ? 'Other Service' : 'Service Job'} detail {job.id}</h3>
                     <div className={styles.jobControls}>
                       <div className={styles.dateGroup}>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -261,10 +268,10 @@ export default async function ServiceDetailDynamic({ params }: { params: Promise
                         <span className={styles.dateSeparator}>-</span>
                         <div className={styles.dateBox}>{job.endDate}</div>
                       </div>
-                      {job.status === "Completed" ? (
+                      {job.status === "Completed" || job.status === "Done" ? (
                         <div className={styles.statusComplete}>Completed</div>
                       ) : (
-                        <div className={styles.statusInProgress}>In Progress</div>
+                        <div className={styles.statusInProgress}>{job.status}</div>
                       )}
                     </div>
                   </div>
@@ -275,40 +282,52 @@ export default async function ServiceDetailDynamic({ params }: { params: Promise
                   </div>
 
                   <div className={styles.grid2}>
-                    <div>
-                      <div className={styles.detailLabel}>Part</div>
-                      <div className={styles.partBox} style={{ flexDirection: 'column', gap: '0.5rem' }}>
-                        {job.parts && job.parts.length > 0 ? (
-                          job.parts.map((p: any, pidx: number) => (
-                            <div key={pidx} style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-                              <div className={styles.partIconGroup}>
-                                <div className={styles.partDot}></div>
-                                {p.part_name}
+                    {/* แสดง Part เฉพาะเมื่องานไม่ใช่ otherjob */}
+                    {job.type !== 'otherjob' && (
+                      <div>
+                        <div className={styles.detailLabel}>Part</div>
+                        <div className={styles.partBox} style={{ flexDirection: 'column', gap: '0.5rem' }}>
+                          {job.parts && job.parts.length > 0 ? (
+                            job.parts.map((p: any, pidx: number) => (
+                              <div key={pidx} style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+                                <div className={styles.partIconGroup}>
+                                  <div className={styles.partDot}></div>
+                                  {p.part_name}
+                                </div>
+                                <span className={styles.partQty}>{p.quantity} ชิ้น</span>
                               </div>
-                              <span className={styles.partQty}>{p.quantity} เครื่อง</span>
+                            ))
+                          ) : (
+                            <div className={styles.partIconGroup}>
+                              <div className={styles.partDot}></div>
+                              -
                             </div>
-                          ))
-                        ) : (
-                          <div className={styles.partIconGroup}>
-                            <div className={styles.partDot}></div>
-                            -
-                          </div>
-                        )}
+                          )}
+                        </div>
                       </div>
-                    </div>
-                    <div>
+                    )}
+                    
+                    {/* ขยาย Assignment ให้เต็มถ้าเป็น otherjob */}
+                    <div style={job.type === 'otherjob' ? { gridColumn: '1 / -1' } : {}}>
                       <div className={styles.detailLabel}>Assignment</div>
                       <div className={styles.assignBox}>
                         <div className={styles.assignHeader}>
                           <div className={styles.assignCol1}>ID</div>
                           <div className={styles.assignCol2}>NAME</div>
                         </div>
-                        {job.assignments.map((assignment: any, idx: number) => (
-                          <div key={idx} className={idx % 2 === 0 ? styles.assignRowEven : styles.assignRowOdd}>
-                            <div className={styles.assignId}>{assignment.id}</div>
-                            <div className={styles.assignName}>{assignment.name}</div>
+                        {job.assignments && job.assignments.length > 0 ? (
+                          job.assignments.map((assignment: any, idx: number) => (
+                            <div key={idx} className={idx % 2 === 0 ? styles.assignRowEven : styles.assignRowOdd}>
+                              <div className={styles.assignId}>{assignment.id}</div>
+                              <div className={styles.assignName}>{assignment.name}</div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className={styles.assignRowEven}>
+                            <div className={styles.assignId}>-</div>
+                            <div className={styles.assignName}>-</div>
                           </div>
-                        ))}
+                        )}
                       </div>
                     </div>
                   </div>
@@ -317,12 +336,11 @@ export default async function ServiceDetailDynamic({ params }: { params: Promise
             )}
           </div>
 
-          {/* Invoice Section */}
           <h2 className={styles.sectionTitle}>Invoice</h2>
           <div className={styles.invoiceSection}>
             <div className={styles.invoiceWrapper}>
               <div className={styles.invoiceHeader}>
-                <div className={styles.invColName}>PART NAME</div>
+                <div className={styles.invColName}>PART / SERVICE NAME</div>
                 <div className={styles.invColQty}>Qty used</div>
                 <div className={styles.invColPrice}>PRICE</div>
               </div>
