@@ -49,9 +49,15 @@ export const loginUser = async (emailOrUsername: string, password: string) => {
 };
 
 export const registerUser = async (
+<<<<<<< HEAD
   email: string,
   username: string,
   password: string,
+=======
+  email: string, 
+  username: string, 
+  password: string, 
+>>>>>>> ee4cb16d0332328b098140b08b135159a09413bf
   role: 'technician' | 'clerk' | 'purchasingStaff',
   name: string,
   phone?: string,

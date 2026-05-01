@@ -1,7 +1,15 @@
 import { db } from '../../db';
-import { eq, desc } from 'drizzle-orm';
-import { appointment } from '../../db/schema';
+import { eq, desc, ne } from 'drizzle-orm';
+import { appointment, vehicle, serviceRequest } from '../../db/schema';
 import { AppointmentStatus } from '../../types/appointment.types';
+
+export async function findAllActiveAppointments() {
+  return db
+    .select()
+    .from(appointment)
+    .where(ne(appointment.appointStatus, AppointmentStatus.CANCELLED))
+    .orderBy(desc(appointment.appointmentDate));
+}
 
 export type CreateAppointmentRecord = {
   appointmentId: string;
@@ -81,3 +89,23 @@ export async function postponeAppointmentTransaction(
     return createdAppointment;
   });
 }
+
+export async function findVehicleByPlate(plate: string) {
+  const rows = await db
+    .select()
+    .from(vehicle)
+    .where(eq(vehicle.plateNumber, plate))
+    .limit(1);
+  return rows[0];
+}
+
+export async function findLatestServiceRequestByVehicleId(vehicleId: string) {
+  const rows = await db
+    .select()
+    .from(serviceRequest)
+    .where(eq(serviceRequest.vehicleId, vehicleId))
+    .orderBy(desc(serviceRequest.checkingDate))
+    .limit(1);
+  return rows[0];
+}
+

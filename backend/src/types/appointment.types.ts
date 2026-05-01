@@ -16,3 +16,12 @@ export type UpdateAppointmentBody = {
   appointment_date?: string;
   notes?: string;
 };
+
+export type QuickCreateAppointmentBody = {
+  platePrefix: string;
+  plateNumber: string;
+  province: string;
+  startTime: string;       // "8:00", "8:30", ..., "18:00"
+  endTime: string;
+  appointmentDate: string; // "YYYY-MM-DD"
+};
