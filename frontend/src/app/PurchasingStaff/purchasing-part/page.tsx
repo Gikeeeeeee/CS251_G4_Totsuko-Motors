@@ -153,7 +153,10 @@ export default function PurchasingPartPage() {
     }
 
     try {
-      const staffId = typeof window !== 'undefined' ? localStorage.getItem('employee_id') || 'EMP001' : 'EMP001';
+      const staffId = typeof window !== 'undefined' ? localStorage.getItem('user') || 'EMP001' : 'EMP001';
+
+      console.log(localStorage.getItem('employeeId'));
+
       await apiClient.post('/service/order', {
         supplierId: sId,
         staffId: staffId,

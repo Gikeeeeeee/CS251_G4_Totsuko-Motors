@@ -61,7 +61,7 @@ export default function VendorPage() {
     });
 
     try {
-      const staffId = typeof window !== 'undefined' ? localStorage.getItem('employee_id') || 'EMP001' : 'EMP001';
+      const staffId = typeof window !== 'undefined' ? localStorage.getItem('employeeId') || 'EMP001' : 'EMP001';
       const promises = Object.entries(ordersBySupplier).map(([sId, data]) => {
         return apiClient.post('/service/order', {
           supplierId: sId,
@@ -278,7 +278,8 @@ function VendorPartsTable({ vendorId, vendorName, orderQty, setOrderQty, onViewL
 
               if (currentSupplierItems.length === 0) return;
               try {
-                const staffId = typeof window !== 'undefined' ? localStorage.getItem('employee_id') || 'EMP001' : 'EMP001';
+                const staffId = typeof window !== 'undefined' ? localStorage.getItem('employeeId') || 'EMP001' : 'EMP001';
+                console.log("DEBUG",localStorage.getItem('employeeId'), staffId, currentSupplierItems);
                 await apiClient.post('/service/order', {
                   supplierId: vendorId,
                   staffId: staffId,
