@@ -1,8 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import SidebarClerk from '@/components/SidebarClerk';
 import TopNavClerk from '@/components/TopNavClerk';
+import apiClient from '@/services/apiClient';
+
 
 type Appointment = {
   id: string;
@@ -117,7 +119,38 @@ export default function SchedulingPage() {
 
   const [appointments, setAppointments] = useState<Appointment[]>([]);
 
-  const handleAssignTask = () => {
+  // โหลดนัดหมายทั้งหมดจาก backend ตอนเปิดหน้า
+  useEffect(() => {
+    const loadAppointments = async () => {
+      try {
+        const res = await apiClient.get('/appointments');
+        type ApptFromApi = {
+          appointmentId: string;
+          appointmentDate: string;
+          plate: string;
+          province: string;
+          startTime: string;
+          endTime: string;
+        };
+        const cards: Appointment[] = res.data.data
+          .filter((a: ApptFromApi) => a.startTime && a.endTime)
+          .map((a: ApptFromApi) => ({
+            id: a.appointmentId,
+            day: new Date(a.appointmentDate).getDay(),
+            startSlot: timeToSlot(a.startTime),
+            endSlot: timeToSlot(a.endTime),
+            plate: a.plate,
+            province: a.province,
+          }));
+        setAppointments(cards);
+      } catch (err) {
+        console.error('Load appointments failed:', err);
+      }
+    };
+    loadAppointments();
+  }, []);
+
+  const handleAssignTask = async () => {
     const fullPlate = `${platePrefix} ${plateNumber}`.trim();
     if (!platePrefix || !plateNumber) {
       alert('กรุณากรอกทะเบียนรถให้ครบ');
@@ -131,22 +164,53 @@ export default function SchedulingPage() {
       return;
     }
 
-    setAppointments((prev) => [
-      ...prev,
-      {
-        id: crypto.randomUUID(),
-        day: selectedDate.getDay(),
-        startSlot,
-        endSlot,
-        plate: fullPlate,
+    try {
+      const yyyy = selectedDate.getFullYear();
+      const mm = String(selectedDate.getMonth() + 1).padStart(2, '0');
+      const dd = String(selectedDate.getDate()).padStart(2, '0');
+
+      const res = await apiClient.post('/appointments/quick-create', {
+        platePrefix,
+        plateNumber,
         province,
-      },
-    ]);
+        startTime: appointPrefix,
+        endTime: appointNumber,
+        appointmentDate: `${yyyy}-${mm}-${dd}`,
+      });
+
+      // ใช้ appointmentId จริงจาก backend
+      const realId = res.data.data.appointmentId;
+
+      setAppointments((prev) => [
+        ...prev,
+        {
+          id: realId,
+          day: selectedDate.getDay(),
+          startSlot,
+          endSlot,
+          plate: fullPlate,
+          province,
+        },
+      ]);
+    } catch (error: unknown) {
+      const message =
+        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        'เกิดข้อผิดพลาด';
+      alert(`สร้างนัดหมายไม่สำเร็จ: ${message}`);
+    }
   };
 
-  const handleDeleteAppointment = (id: string, plate: string) => {
-    if (confirm(`ต้องการลบนัดหมายของ "${plate}" ใช่หรือไม่?`)) {
+  const handleDeleteAppointment = async (id: string, plate: string) => {
+    if (!confirm(`ต้องการลบนัดหมายของ "${plate}" ใช่หรือไม่?`)) return;
+
+    try {
+      await apiClient.put(`/appointments/${id}`, { status: 'CANCELLED' });
       setAppointments((prev) => prev.filter((a) => a.id !== id));
+    } catch (error: unknown) {
+      const message =
+        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        'เกิดข้อผิดพลาด';
+      alert(`ลบนัดหมายไม่สำเร็จ: ${message}`);
     }
   };
 

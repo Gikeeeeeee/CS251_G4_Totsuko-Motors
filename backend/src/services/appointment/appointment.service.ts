@@ -4,9 +4,18 @@ import {
   getAppointmentsByRequestId as fetchAppointmentsByRequestId,
   getAppointmentById,
   updateAppointment,
-  postponeAppointmentTransaction
+  postponeAppointmentTransaction,
+  findVehicleByPlate,
+  findLatestServiceRequestByVehicleId,
+  findAllActiveAppointments,
 } from '../../repo/appointment/appointment.repo';
-import { AppointmentStatus, CreateAppointmentBody, UpdateAppointmentBody } from '../../types/appointment.types';
+import {
+  AppointmentStatus,
+  CreateAppointmentBody,
+  UpdateAppointmentBody,
+  QuickCreateAppointmentBody,
+} from '../../types/appointment.types';
+
 
 function generateId(prefix: string) {
   return `${prefix}${randomUUID().replace(/-/g, '').slice(0, 9)}`.toUpperCase();
@@ -104,5 +113,87 @@ export async function updateAppointmentStatus(appointmentId: string, body: Updat
   return updateAppointment(appointmentId, {
     appointStatus: newStatus,
     notes: body.notes,
+  });
+}
+
+
+export async function quickCreateAppointmentFromForm(body: QuickCreateAppointmentBody) {
+  // validate fields
+  if (!body.platePrefix || !body.plateNumber) {
+    throw new Error('platePrefix และ plateNumber required');
+  }
+  if (!body.startTime || !body.endTime) {
+    throw new Error('startTime และ endTime required');
+  }
+  if (!body.appointmentDate) {
+    throw new Error('appointmentDate required');
+  }
+
+  // หา vehicle จาก plate (รวม prefix + เลข เป็นรูปแบบเดียวกับ DB)
+  const fullPlate = `${body.platePrefix} ${body.plateNumber}`.trim();
+  const targetVehicle = await findVehicleByPlate(fullPlate);
+  if (!targetVehicle) {
+    throw new Error(`ไม่พบรถทะเบียน "${fullPlate}" ในระบบ`);
+  }
+
+  // หา service request ล่าสุดของรถคันนี้
+  const targetRequest = await findLatestServiceRequestByVehicleId(targetVehicle.vehicleId);
+  if (!targetRequest) {
+    throw new Error('รถคันนี้ยังไม่มีใบแจ้งซ่อมในระบบ');
+  }
+
+  // รวมวัน + เวลาเริ่ม → Date object
+  const [hours, minutes] = body.startTime.split(':').map(Number);
+  const appointmentDateTime = new Date(body.appointmentDate);
+  appointmentDateTime.setHours(hours, minutes, 0, 0);
+
+  if (isNaN(appointmentDateTime.getTime())) {
+    throw new Error('Invalid appointment date/time');
+  }
+  if (appointmentDateTime < new Date()) {
+    throw new Error('appointment_date cannot be in the past');
+  }
+
+  // encode field พิเศษใน notes (เพราะ schema ไม่มี column สำหรับ field พวกนี้)
+  const extraInfo = JSON.stringify({
+    plate: fullPlate,
+    province: body.province,
+    startTime: body.startTime,
+    endTime: body.endTime,
+  });
+
+  // สร้าง appointment record
+  return createAppointmentRecord({
+    appointmentId: generateId('A'),
+    appointmentDate: appointmentDateTime,
+    appointStatus: AppointmentStatus.SCHEDULED,
+    notes: extraInfo,
+    requestId: targetRequest.requestId,
+  });
+}
+
+// ดึง appointment ทั้งหมดที่ยังไม่ถูกยกเลิก (สำหรับหน้า scheduling)
+export async function getAllActiveAppointmentsForBoard() {
+  const rows = await findAllActiveAppointments();
+
+  return rows.map((row) => {
+    let extra: { plate?: string; province?: string; startTime?: string; endTime?: string } = {};
+    try {
+      if (row.notes) {
+        extra = JSON.parse(row.notes);
+      }
+    } catch {
+      // notes ไม่ใช่ JSON (อาจเป็น appointment เก่าที่ใส่ notes แบบ free-text)
+    }
+
+    return {
+      appointmentId: row.appointmentId,
+      appointmentDate: row.appointmentDate,
+      appointStatus: row.appointStatus,
+      plate: extra.plate || '',
+      province: extra.province || '',
+      startTime: extra.startTime || '',
+      endTime: extra.endTime || '',
+    };
   });
 }
