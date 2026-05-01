@@ -899,7 +899,23 @@ function ServiceJobSection({ jobs, setJobs }: { jobs: ServiceJob[]; setJobs: Rea
       )}
       <div className="space-y-3 mb-3">
         {jobs.map(job => (
-          <ServiceJobCard key={job.id} job={job} onChange={updated => updateJob(job.id, updated)} onDelete={() => setJobs(prev => prev.filter(j => j.id !== job.id))} onSave={handleSaveJob} />
+          <ServiceJobCard
+            key={job.id}
+            job={job}
+            onChange={updated => updateJob(job.id, updated)}
+            onDelete={async () => {
+              try {
+                if (job.serviceId) {
+                  await apiClient.delete(`/service/service-job/${job.serviceId}`);
+                }
+                setJobs(prev => prev.filter(j => j.id !== job.id));
+              } catch (error) {
+                console.error(error);
+                window.alert('ไม่สามารถลบ service job ได้');
+              }
+            }}
+            onSave={handleSaveJob}
+          />
         ))}
       </div>
       <button
@@ -918,7 +934,7 @@ const handleSubmit = () => {
   alert('Data submitted! Check console for details.');
 }
 
-function ServiceJobCard({ job, onChange, onDelete, onSave }: { job: ServiceJob; onChange: (j: ServiceJob) => void; onDelete: () => void; onSave: (job: ServiceJob) => Promise<void> }) {
+function ServiceJobCard({ job, onChange, onDelete, onSave }: { job: ServiceJob; onChange: (j: ServiceJob) => void; onDelete: () => Promise<void>; onSave: (job: ServiceJob) => Promise<void> }) {
   const [showPartModal, setShowPartModal] = useState(false);
   const [showTechModal, setShowTechModal] = useState(false);
   const [isEditing, setIsEditing] = useState(!job.serviceId);
@@ -1147,7 +1163,17 @@ function OtherServiceSection({ items, setItems }: { items: OtherService[]; setIt
             key={item.id}
             item={item}
             onChange={updated => updateItem(item.id, updated)}
-            onDelete={() => setItems(prev => prev.filter(s => s.id !== item.id))}
+            onDelete={async () => {
+              try {
+                if (item.serviceId) {
+                  await apiClient.delete(`/service/service-job/${item.serviceId}`);
+                }
+                setItems(prev => prev.filter(s => s.id !== item.id));
+              } catch (error) {
+                console.error(error);
+                window.alert('ไม่สามารถลบ service ได้');
+              }
+            }}
             onSave={handleSave}
           />
         ))}
@@ -1163,7 +1189,7 @@ function OtherServiceSection({ items, setItems }: { items: OtherService[]; setIt
   );
 }
 
-function OtherServiceCard({ item, onChange, onDelete, onSave }: { item: OtherService; onChange: (s: OtherService) => void; onDelete: () => void; onSave: (item: OtherService) => Promise<void>; }) {
+function OtherServiceCard({ item, onChange, onDelete, onSave }: { item: OtherService; onChange: (s: OtherService) => void; onDelete: () => Promise<void>; onSave: (item: OtherService) => Promise<void>; }) {
   const [showServiceModal, setShowServiceModal] = useState(false);
   const [showTechModal, setShowTechModal] = useState(false);
   const [isEditing, setIsEditing] = useState(!item.serviceId);

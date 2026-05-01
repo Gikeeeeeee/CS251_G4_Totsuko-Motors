@@ -10,6 +10,7 @@ import {
   replaceServiceJobPartsHandler,
   replaceServiceJobTechniciansHandler,
   removeTechnicianFromJob,
+  deleteServiceJobHandler,
 } from '../../controllers/service/service-job.controller';
 import { createServiceController } from '../../controllers/service/service-request.controller';
 import {
@@ -36,6 +37,7 @@ router.put('/service-job/:id/parts', replaceServiceJobPartsHandler);
 router.put('/service-job/:id/assign', replaceServiceJobTechniciansHandler);
 router.post('/service-job/:id/parts', createUsePart);
 router.post('/service-job/:id/assign', assignTechnicianToJob);
+router.delete('/service-job/:id', deleteServiceJobHandler);
 router.delete('/service-job/:id/assign/:technicianId', removeTechnicianFromJob);
 
 router.get('/suppliers', getSuppliers);// เส้นดึงข้อมูลรายชื่อ supplier

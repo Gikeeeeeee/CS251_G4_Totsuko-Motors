@@ -8,6 +8,7 @@ import {
   replaceServiceJobParts,
   replaceServiceJobTechnicians,
   removeTechnician,
+  deleteServiceJobById,
 } from '../../services/service/service-job.service';
 
 export async function createServiceJob(req: Request, res: Response) {
@@ -113,6 +114,18 @@ export async function removeTechnicianFromJob(req: Request, res: Response) {
     return res.status(200).json({ success: true, message: 'Technician removed from job' });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to remove technician';
+    const statusCode = message.includes('not found') ? 404 : 500;
+    return res.status(statusCode).json({ success: false, message });
+  }
+}
+
+export async function deleteServiceJobHandler(req: Request, res: Response) {
+  try {
+    const { id } = req.params;
+    const data = await deleteServiceJobById(id);
+    return res.status(200).json({ success: true, message: 'Service job deleted successfully', data });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to delete service job';
     const statusCode = message.includes('not found') ? 404 : 500;
     return res.status(statusCode).json({ success: false, message });
   }

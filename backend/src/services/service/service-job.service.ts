@@ -7,6 +7,7 @@ import {
   updateServiceJobRecord,
   replaceUseParts,
   replaceAssignments,
+  deleteServiceJobCascade,
   UpdateServiceJobRecord,
   findAssignTo,
   createAssignTo,
@@ -182,5 +183,14 @@ export async function replaceServiceJobTechnicians(serviceId: string, technician
 export async function removeTechnician(serviceId: string, technicianId: string) {
   const deleted = await deleteAssignTo(serviceId, technicianId);
   if (!deleted) throw new Error('Assignment not found');
+  return deleted;
+}
+
+export async function deleteServiceJobById(serviceId: string) {
+  const job = await findServiceJobDetailById(serviceId);
+  if (!job) throw new Error('Service job not found');
+
+  const deleted = await deleteServiceJobCascade(serviceId);
+  if (!deleted) throw new Error('Service job deletion failed');
   return deleted;
 }

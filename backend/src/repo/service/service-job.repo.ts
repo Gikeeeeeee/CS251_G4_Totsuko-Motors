@@ -255,3 +255,25 @@ export async function replaceAssignments(serviceId: string, technicianIds: strin
     client.release();
   }
 }
+
+export async function deleteServiceJobCascade(serviceId: string) {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    await client.query(`DELETE FROM "AssignTo" WHERE service_id = $1`, [serviceId]);
+    await client.query(`DELETE FROM "UsePart" WHERE service_id = $1`, [serviceId]);
+    const result = await client.query(
+      `DELETE FROM "ServiceJob" WHERE service_id = $1 RETURNING *`,
+      [serviceId],
+    );
+
+    await client.query('COMMIT');
+    return result.rows[0] ?? null;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
