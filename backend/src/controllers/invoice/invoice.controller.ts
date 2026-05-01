@@ -1,5 +1,15 @@
 import { Request, Response } from 'express';
-import { createInvoice, getInvoiceByRequestId } from '../../services/invoice/invoice.service';
+import { createInvoice, getInvoiceByRequestId, getAllInvoices, payInvoice } from '../../services/invoice/invoice.service';
+
+export async function getAllInvoicesController(req: Request, res: Response) {
+  try {
+    const data = await getAllInvoices();
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to get invoices';
+    res.status(500).json({ success: false, message });
+  }
+}
 
 export async function getInvoiceByRequestIdController(req: Request, res: Response) {
   try {
@@ -34,6 +44,24 @@ export async function createInvoiceController(req: Request, res: Response) {
     if (message.includes('required') || message.includes('valid number')) statusCode = 400;
     if (message.includes('not found')) statusCode = 404;
     if (message.includes('already exists')) statusCode = 409;
+
+    res.status(statusCode).json({ success: false, message });
+  }
+}
+
+export async function payInvoiceController(req: Request, res: Response) {
+  try {
+    const { invoiceId } = req.params;
+    const data = await payInvoice(invoiceId);
+
+    res.status(200).json({
+      success: true,
+      message: 'Invoice paid successfully',
+      data,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to pay invoice';
+    const statusCode = message.includes('not found') ? 404 : 500;
 
     res.status(statusCode).json({ success: false, message });
   }
