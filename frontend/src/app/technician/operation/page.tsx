@@ -54,6 +54,39 @@ export default function OperatingPage() {
   const [data, setData] = useState<MockData | null>(null);
   const [jobs, setJobs] = useState<ServiceJob[]>([]);
   const [otherItems, setOtherItems] = useState<OtherService[]>([]);
+  const requestId = 'REQ-001';
+
+  useEffect(() => {
+    setData(MOCK);
+
+    apiClient
+      .get<{ success: boolean; data: any[] }>(`/service/${requestId}/service-jobs`)
+      .then((res) => {
+        const mappedJobs = res.data.data.map((item, index) => ({
+          id: index + 1,
+          detail: item.service_details || '',
+          timeStart: item.start_time || '',
+          timeEnd: item.end_time || '',
+          status: (item.service_status as ServiceJob['status']) || 'In Progress',
+          parts: (item.parts || []).map((part: any) => ({
+            partId: part.partId,
+            name: part.partName,
+            qty: part.quantity,
+            price: Number(part.price),
+            stockQuantity: part.stockQuantity,
+          })),
+          technicians: (item.technicians || []).map((tech: any) => ({
+            employeeId: tech.employeeId,
+            name: tech.name,
+          })),
+        }));
+
+        setJobs(mappedJobs);
+      })
+      .catch(() => {
+        setJobs([]);
+      });
+  }, []);
 
   return (
     <div>
