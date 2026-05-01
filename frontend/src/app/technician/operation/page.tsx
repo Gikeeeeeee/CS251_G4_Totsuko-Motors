@@ -34,6 +34,8 @@ type MockData = {
   invoiceItems: { partName: string; stockQuantity: number; qtyUsed: number; price: number }[];
 };
 
+const REQUEST_ID = 'REQ-001';
+
 const MOCK: MockData = {
   plateNumber: '4ขณ 6931',
   name: 'พีรภัทร เอกดิษฐ์',
@@ -54,37 +56,62 @@ export default function OperatingPage() {
   const [data, setData] = useState<MockData | null>(null);
   const [jobs, setJobs] = useState<ServiceJob[]>([]);
   const [otherItems, setOtherItems] = useState<OtherService[]>([]);
-  const requestId = 'REQ-001';
 
   useEffect(() => {
     setData(MOCK);
 
     apiClient
-      .get<{ success: boolean; data: any[] }>(`/service/${requestId}/service-jobs`)
+      .get<{ success: boolean; data: any[] }>(`/service/${REQUEST_ID}/service-jobs`)
       .then((res) => {
-        const mappedJobs = res.data.data.map((item, index) => ({
-          id: index + 1,
-          detail: item.service_details || '',
-          timeStart: item.start_time || '',
-          timeEnd: item.end_time || '',
-          status: (item.service_status as ServiceJob['status']) || 'In Progress',
-          parts: (item.parts || []).map((part: any) => ({
-            partId: part.partId,
-            name: part.partName,
-            qty: part.quantity,
-            price: Number(part.price),
-            stockQuantity: part.stockQuantity,
-          })),
-          technicians: (item.technicians || []).map((tech: any) => ({
+        let jobIndex = 0;
+        let otherIndex = 0;
+        const serviceJobs: ServiceJob[] = [];
+        const serviceOthers: OtherService[] = [];
+
+        res.data.data.forEach((item) => {
+          const technicians = (item.technicians || []).map((tech: any) => ({
             employeeId: tech.employeeId,
             name: tech.name,
-          })),
-        }));
+          }));
 
-        setJobs(mappedJobs);
+          if (item.service_type === 'otherjob') {
+            otherIndex += 1;
+            serviceOthers.push({
+              id: otherIndex,
+              serviceId: item.service_id,
+              dateStart: item.start_time || '',
+              dateEnd: item.end_time || '',
+              status: (item.service_status as OtherService['status']) || 'In Progress',
+              services: item.service_details ? String(item.service_details).split(',').map((s: string) => s.trim()).filter(Boolean) : [],
+              technicians,
+            });
+          } else {
+            jobIndex += 1;
+            serviceJobs.push({
+              id: jobIndex,
+              serviceId: item.service_id,
+              detail: item.service_details || '',
+              timeStart: item.start_time || '',
+              timeEnd: item.end_time || '',
+              status: (item.service_status as ServiceJob['status']) || 'In Progress',
+              parts: (item.parts || []).map((part: any) => ({
+                partId: part.partId,
+                name: part.partName,
+                qty: part.quantity,
+                price: Number(part.price),
+                stockQuantity: part.stockQuantity,
+              })),
+              technicians,
+            });
+          }
+        });
+
+        setJobs(serviceJobs);
+        setOtherItems(serviceOthers);
       })
       .catch(() => {
         setJobs([]);
+        setOtherItems([]);
       });
   }, []);
 
@@ -244,7 +271,7 @@ function InvoiceCard({ jobs, otherItems }: { data: MockData; jobs: ServiceJob[];
   );
 }
 
-function DatePicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+function DatePicker({ value, onChange, disabled }: { value: string; onChange: (v: string) => void; disabled?: boolean }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -278,7 +305,8 @@ function DatePicker({ value, onChange }: { value: string; onChange: (v: string) 
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen(v => !v)}
-        className="w-28 text-center text-sm rounded-lg border border-blue-200 bg-white px-2 py-1 outline-none hover:border-blue-400 cursor-pointer"
+        disabled={disabled}
+        className={`w-28 text-center text-sm rounded-lg border border-blue-200 bg-white px-2 py-1 outline-none ${disabled ? 'cursor-not-allowed bg-slate-100 text-slate-400' : 'hover:border-blue-400 cursor-pointer'}`}
       >
         {value || 'เลือกวันที่'}
       </button>
@@ -375,6 +403,7 @@ function AppointmentCard({ data }: { data: MockData }) {
 
 type ServiceJob = {
   id: number;
+  serviceId?: string;
   detail: string;
   timeStart: string;
   timeEnd: string;
@@ -632,31 +661,45 @@ function ServiceJobSection({ jobs, setJobs }: { jobs: ServiceJob[]; setJobs: Rea
   const updateJob = (id: number, updated: ServiceJob) =>
     setJobs(prev => prev.map(j => (j.id === id ? updated : j)));
 
-  const handleSaveJob = async (job: ServiceJob) => {
+  const handleSaveJob = async (job: ServiceJob): Promise<void> => {
     const laborCost = job.technicians.length * 200;
-
-    const { data: res } = await apiClient.post('/service/REQ-001/service-job', {
-      service_type: 'repair',
+    const jobPayload = {
       service_details: job.detail,
+      job_status: job.status,
+      labor_cost: laborCost,
       start_time: job.timeStart || null,
       end_time: job.timeEnd || null,
+    };
+
+    if (job.serviceId) {
+      await Promise.all([
+        apiClient.put(`/service/service-job/${job.serviceId}`, jobPayload),
+        apiClient.put(`/service/service-job/${job.serviceId}/parts`, {
+          parts: job.parts.map(p => ({ part_id: p.partId, quantity: p.qty })),
+        }),
+        apiClient.put(`/service/service-job/${job.serviceId}/assign`, {
+          technicianIds: job.technicians.map(t => t.employeeId),
+        }),
+      ]);
+      return;
+    }
+
+    const { data: res } = await apiClient.post(`/service/${REQUEST_ID}/service-job`, {
+      service_type: 'repair',
+      ...jobPayload,
       service_status: job.status,
-      labor_cost: laborCost,
     });
     const jobId: string = res.data.service_id;
 
+    setJobs(prev => prev.map(j => (j.id === job.id ? { ...j, serviceId: jobId } : j)));
+
     await Promise.all([
-      ...job.parts.map(p =>
-        apiClient.post(`/service/service-job/${jobId}/parts`, {
-          part_id: p.partId,
-          quantity: p.qty,
-        })
-      ),
-      ...job.technicians.map(t =>
-        apiClient.post(`/service/service-job/${jobId}/assign`, {
-          technicianId: t.employeeId,
-        })
-      ),
+      apiClient.put(`/service/service-job/${jobId}/parts`, {
+        parts: job.parts.map(p => ({ part_id: p.partId, quantity: p.qty })),
+      }),
+      apiClient.put(`/service/service-job/${jobId}/assign`, {
+        technicianIds: job.technicians.map(t => t.employeeId),
+      }),
     ]);
   };
 
@@ -689,9 +732,14 @@ const handleSubmit = () => {
   alert('Data submitted! Check console for details.');
 }
 
-function ServiceJobCard({ job, onChange, onDelete, onSave }: { job: ServiceJob; onChange: (j: ServiceJob) => void; onDelete: () => void; onSave: (job: ServiceJob) => void }) {
+function ServiceJobCard({ job, onChange, onDelete, onSave }: { job: ServiceJob; onChange: (j: ServiceJob) => void; onDelete: () => void; onSave: (job: ServiceJob) => Promise<void> }) {
   const [showPartModal, setShowPartModal] = useState(false);
   const [showTechModal, setShowTechModal] = useState(false);
+  const [isEditing, setIsEditing] = useState(!job.serviceId);
+
+  useEffect(() => {
+    setIsEditing(!job.serviceId);
+  }, [job.serviceId]);
 
   const statusColors: Record<ServiceJob['status'], string> = {
     'In Progress': '#FEF3C7',
@@ -711,19 +759,28 @@ function ServiceJobCard({ job, onChange, onDelete, onSave }: { job: ServiceJob; 
         <button onClick={onDelete} className="text-slate-300 hover:text-red-400 transition-colors cursor-pointer" title="ลบ">
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2L12 12M12 2L2 12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/></svg>
         </button>
+        {job.serviceId && !isEditing && (
+          <button
+            onClick={() => setIsEditing(true)}
+            className="text-xs font-semibold text-slate-700 px-3 py-1 rounded-lg border border-slate-200 hover:bg-slate-100 transition-colors"
+          >
+            แก้ไข
+          </button>
+        )}
         <div className="flex items-center gap-2 ml-auto">
           <svg width="15" height="15" viewBox="0 0 15 15" fill="none" className="text-slate-400">
             <circle cx="7.5" cy="7.5" r="6.5" stroke="currentColor" strokeWidth="1.2" />
             <path d="M7.5 4.5V7.5L9.5 9.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
           </svg>
           <span className="text-red-400 -ml-1">*</span>
-          <DatePicker value={job.timeStart} onChange={v => onChange({ ...job, timeStart: v })} />
+          <DatePicker value={job.timeStart} onChange={v => onChange({ ...job, timeStart: v })} disabled={!isEditing} />
           <span className="text-slate-400">-</span>
-          <DatePicker value={job.timeEnd} onChange={v => onChange({ ...job, timeEnd: v })} />
+          <DatePicker value={job.timeEnd} onChange={v => onChange({ ...job, timeEnd: v })} disabled={!isEditing} />
           <select
             value={job.status}
             onChange={e => onChange({ ...job, status: e.target.value as ServiceJob['status'] })}
-            className="text-xs font-semibold rounded-full px-3 py-1 border-0 outline-none cursor-pointer"
+            disabled={!isEditing}
+            className={`text-xs font-semibold rounded-full px-3 py-1 border-0 outline-none ${isEditing ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`}
             style={{ backgroundColor: statusColors[job.status], color: statusTextColors[job.status] }}
           >
             <option value="In Progress">In Progress</option>
@@ -739,7 +796,8 @@ function ServiceJobCard({ job, onChange, onDelete, onSave }: { job: ServiceJob; 
           value={job.detail}
           onChange={e => onChange({ ...job, detail: e.target.value })}
           placeholder="รายละเอียดงาน..."
-          className="w-full text-sm rounded-lg border border-blue-200 bg-white px-3 py-2 outline-none focus:border-blue-400"
+          disabled={!isEditing}
+          className={`w-full text-sm rounded-lg border border-blue-200 px-3 py-2 outline-none ${isEditing ? 'bg-white focus:border-blue-400' : 'bg-slate-100 text-slate-500 cursor-not-allowed'}`}
         />
       </div>
 
@@ -761,16 +819,20 @@ function ServiceJobCard({ job, onChange, onDelete, onSave }: { job: ServiceJob; 
           )}
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-semibold text-slate-600">Part <span className="text-red-400">*</span></span>
-            <button onClick={() => setShowPartModal(true)} className="text-xs font-semibold px-3 py-1 rounded-lg cursor-pointer" style={{ backgroundColor: '#97D2FF', color: '#1E3A8A' }}>
-              + Add Part
-            </button>
+            {isEditing && (
+              <button onClick={() => setShowPartModal(true)} className="text-xs font-semibold px-3 py-1 rounded-lg cursor-pointer" style={{ backgroundColor: '#97D2FF', color: '#1E3A8A' }}>
+                + Add Part
+              </button>
+            )}
           </div>
           <div className="rounded-lg border border-blue-100 bg-white min-h-0 divide-y divide-blue-50">
             {job.parts.length === 0 && <span className="text-xs text-slate-300 p-2 block">ยังไม่มี Part</span>}
             {job.parts.map((p, i) => (
               <div key={i} className="text-xs text-slate-700 flex items-center justify-between px-2 py-2">
                 <span><span className="text-slate-400 mr-1">•</span>{p.name} <span className="text-slate-400">×{p.qty}</span></span>
-                <button onClick={() => onChange({ ...job, parts: job.parts.filter((_, idx) => idx !== i) })} className="text-slate-300 hover:text-red-400 ml-2 cursor-pointer">✕</button>
+                {isEditing && (
+                  <button onClick={() => onChange({ ...job, parts: job.parts.filter((_, idx) => idx !== i) })} className="text-slate-300 hover:text-red-400 ml-2 cursor-pointer">✕</button>
+                )}
               </div>
             ))}
           </div>
@@ -786,9 +848,11 @@ function ServiceJobCard({ job, onChange, onDelete, onSave }: { job: ServiceJob; 
           )}
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-semibold text-slate-600">Assignment <span className="text-red-400">*</span></span>
-            <button onClick={() => setShowTechModal(true)} className="text-xs font-semibold px-3 py-1 rounded-lg cursor-pointer" style={{ backgroundColor: '#97D2FF', color: '#1E3A8A' }}>
-              + Add Technician
-            </button>
+            {isEditing && (
+              <button onClick={() => setShowTechModal(true)} className="text-xs font-semibold px-3 py-1 rounded-lg cursor-pointer" style={{ backgroundColor: '#97D2FF', color: '#1E3A8A' }}>
+                + Add Technician
+              </button>
+            )}
           </div>
           <div className="rounded-lg border border-blue-100 overflow-hidden">
             <div className="grid grid-cols-2 text-[10px] uppercase tracking-widest text-slate-600 font-semibold px-3 py-1.5" style={{ backgroundColor: '#97D2FF' }}>
@@ -805,7 +869,9 @@ function ServiceJobCard({ job, onChange, onDelete, onSave }: { job: ServiceJob; 
                   <span>{t.employeeId}</span>
                   <span className="flex items-center justify-between">
                     {t.name}
-                    <button onClick={() => onChange({ ...job, technicians: job.technicians.filter((_, idx) => idx !== i) })} className="text-slate-300 hover:text-red-400 cursor-pointer">✕</button>
+                    {isEditing && (
+                      <button onClick={() => onChange({ ...job, technicians: job.technicians.filter((_, idx) => idx !== i) })} className="text-slate-300 hover:text-red-400 cursor-pointer">✕</button>
+                    )}
                   </span>
                 </div>
               ))
@@ -813,14 +879,15 @@ function ServiceJobCard({ job, onChange, onDelete, onSave }: { job: ServiceJob; 
           </div>
         </div>
       </div>
-      <div className="px-4 pb-4 flex justify-end">
+      <div className="px-4 pb-4 flex justify-end gap-2">
         <button
-          onClick={() => onSave(job)}
-          className="text-xs font-semibold text-white px-5 py-2 rounded-lg cursor-pointer"
-          style={{ backgroundColor: '#1D4ED8' }}
+          onClick={() => onSave(job).then(() => { if (job.serviceId) setIsEditing(false); })}
+          disabled={!isEditing}
+          className={`text-xs font-semibold text-white px-5 py-2 rounded-lg ${isEditing ? 'cursor-pointer bg-blue-700' : 'cursor-not-allowed bg-slate-400'}`}
+          style={{ backgroundColor: isEditing ? '#1D4ED8' : undefined }}
         >
-          บันทึก
-        </button> 
+          {job.serviceId ? 'บันทึก' : 'สร้าง'}
+        </button>
       </div> {/* //พอพร้อมจะ connect API จริงค่อยแทนที่ตรง 612 ได้` */}
     </div>
   );
@@ -830,6 +897,7 @@ function ServiceJobCard({ job, onChange, onDelete, onSave }: { job: ServiceJob; 
 
 type OtherService = {
   id: number;
+  serviceId?: string;
   dateStart: string;
   dateEnd: string;
   status: 'In Progress' | 'Done' | 'Pending';
@@ -849,6 +917,36 @@ function OtherServiceSection({ items, setItems }: { items: OtherService[]; setIt
   const updateItem = (id: number, updated: OtherService) =>
     setItems(prev => prev.map(s => (s.id === id ? updated : s)));
 
+  const handleSave = async (item: OtherService) => {
+    const laborCost = item.technicians.length * 200;
+    const payload = {
+      service_type: 'otherjob',
+      service_details: item.services.join(', '),
+      start_time: item.dateStart || null,
+      end_time: item.dateEnd || null,
+      service_status: item.status,
+      labor_cost: laborCost,
+    };
+
+    if (item.serviceId) {
+      await Promise.all([
+        apiClient.put(`/service/service-job/${item.serviceId}`, payload),
+        apiClient.put(`/service/service-job/${item.serviceId}/assign`, {
+          technicianIds: item.technicians.map(t => t.employeeId),
+        }),
+      ]);
+      return;
+    }
+
+    const { data: res } = await apiClient.post(`/service/${REQUEST_ID}/service-job`, payload);
+    const serviceId: string = res.data.service_id;
+    setItems(prev => prev.map(s => (s.id === item.id ? { ...s, serviceId } : s)));
+
+    await apiClient.put(`/service/service-job/${serviceId}/assign`, {
+      technicianIds: item.technicians.map(t => t.employeeId),
+    });
+  };
+
   return (
     <div>
       <div className="font-bold text-slate-800 mb-3">Other Service</div>
@@ -864,6 +962,7 @@ function OtherServiceSection({ items, setItems }: { items: OtherService[]; setIt
             item={item}
             onChange={updated => updateItem(item.id, updated)}
             onDelete={() => setItems(prev => prev.filter(s => s.id !== item.id))}
+            onSave={handleSave}
           />
         ))}
       </div>
@@ -878,9 +977,14 @@ function OtherServiceSection({ items, setItems }: { items: OtherService[]; setIt
   );
 }
 
-function OtherServiceCard({ item, onChange, onDelete }: { item: OtherService; onChange: (s: OtherService) => void; onDelete: () => void }) {
+function OtherServiceCard({ item, onChange, onDelete, onSave }: { item: OtherService; onChange: (s: OtherService) => void; onDelete: () => void; onSave: (item: OtherService) => Promise<void>; }) {
   const [showServiceModal, setShowServiceModal] = useState(false);
   const [showTechModal, setShowTechModal] = useState(false);
+  const [isEditing, setIsEditing] = useState(!item.serviceId);
+
+  useEffect(() => {
+    setIsEditing(!item.serviceId);
+  }, [item.serviceId]);
 
   const statusColors: Record<OtherService['status'], string> = {
     'In Progress': '#FEF3C7', 'Done': '#D1FAE5', 'Pending': '#F1F5F9',
@@ -902,16 +1006,25 @@ function OtherServiceCard({ item, onChange, onDelete }: { item: OtherService; on
             <path d="M7.5 4.5V7.5L9.5 9.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
           </svg>
           <span className="text-red-400 -ml-1">*</span>
-          <DatePicker value={item.dateStart} onChange={v => onChange({ ...item, dateStart: v })} />
+          <DatePicker value={item.dateStart} onChange={v => onChange({ ...item, dateStart: v })} disabled={!isEditing} />
           <span className="text-slate-400">-</span>
-          <DatePicker value={item.dateEnd} onChange={v => onChange({ ...item, dateEnd: v })} />
+          <DatePicker value={item.dateEnd} onChange={v => onChange({ ...item, dateEnd: v })} disabled={!isEditing} />
           <select value={item.status} onChange={e => onChange({ ...item, status: e.target.value as OtherService['status'] })}
-            className="text-xs font-semibold rounded-full px-3 py-1 border-0 outline-none cursor-pointer"
+            disabled={!isEditing}
+            className={`text-xs font-semibold rounded-full px-3 py-1 border-0 outline-none ${isEditing ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`}
             style={{ backgroundColor: statusColors[item.status], color: statusTextColors[item.status] }}>
             <option value="In Progress">In Progress</option>
             <option value="Done">Done</option>
             <option value="Pending">Pending</option>
           </select>
+          {item.serviceId && !isEditing && (
+            <button
+              onClick={() => setIsEditing(true)}
+              className="text-xs font-semibold text-slate-700 px-3 py-1 rounded-lg border border-slate-200 hover:bg-slate-100 transition-colors"
+            >
+              แก้ไข
+            </button>
+          )}
         </div>
       </div>
 
@@ -925,16 +1038,20 @@ function OtherServiceCard({ item, onChange, onDelete }: { item: OtherService; on
           )}
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-semibold text-slate-600">Service <span className="text-red-400">*</span></span>
-            <button onClick={() => setShowServiceModal(true)} className="text-xs font-semibold px-3 py-1 rounded-lg cursor-pointer" style={{ backgroundColor: '#97D2FF', color: '#1E3A8A' }}>
-              + Add Service
-            </button>
+            {isEditing && (
+              <button onClick={() => setShowServiceModal(true)} className="text-xs font-semibold px-3 py-1 rounded-lg cursor-pointer" style={{ backgroundColor: '#97D2FF', color: '#1E3A8A' }}>
+                + Add Service
+              </button>
+            )}
           </div>
           <div className="rounded-lg border border-blue-100 bg-white min-h-0 divide-y divide-blue-50">
             {item.services.length === 0 && <span className="text-xs text-slate-300 p-2 block">ยังไม่มีรายการ</span>}
             {item.services.map((s, i) => (
               <div key={i} className="text-xs text-slate-700 flex items-center justify-between px-2 py-2">
                 <span>{s}</span>
-                <button onClick={() => onChange({ ...item, services: item.services.filter((_, idx) => idx !== i) })} className="text-slate-300 hover:text-red-400 ml-2 cursor-pointer">✕</button>
+                {isEditing && (
+                  <button onClick={() => onChange({ ...item, services: item.services.filter((_, idx) => idx !== i) })} className="text-slate-300 hover:text-red-400 ml-2 cursor-pointer">✕</button>
+                )}
               </div>
             ))}
           </div>
@@ -950,9 +1067,11 @@ function OtherServiceCard({ item, onChange, onDelete }: { item: OtherService; on
           )}
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-semibold text-slate-600">Assignment <span className="text-red-400">*</span></span>
-            <button onClick={() => setShowTechModal(true)} className="text-xs font-semibold px-3 py-1 rounded-lg cursor-pointer" style={{ backgroundColor: '#97D2FF', color: '#1E3A8A' }}>
-              + Add Technician
-            </button>
+            {isEditing && (
+              <button onClick={() => setShowTechModal(true)} className="text-xs font-semibold px-3 py-1 rounded-lg cursor-pointer" style={{ backgroundColor: '#97D2FF', color: '#1E3A8A' }}>
+                + Add Technician
+              </button>
+            )}
           </div>
           <div className="rounded-lg border border-blue-100 overflow-hidden">
             <div className="grid grid-cols-2 text-[10px] uppercase tracking-widest text-slate-600 font-semibold px-3 py-1.5" style={{ backgroundColor: '#97D2FF' }}>
@@ -968,13 +1087,25 @@ function OtherServiceCard({ item, onChange, onDelete }: { item: OtherService; on
                   <span>{t.employeeId}</span>
                   <span className="flex items-center justify-between">
                     {t.name}
-                    <button onClick={() => onChange({ ...item, technicians: item.technicians.filter((_, idx) => idx !== i) })} className="text-slate-300 hover:text-red-400 cursor-pointer">✕</button>
+                    {isEditing && (
+                      <button onClick={() => onChange({ ...item, technicians: item.technicians.filter((_, idx) => idx !== i) })} className="text-slate-300 hover:text-red-400 cursor-pointer">✕</button>
+                    )}
                   </span>
                 </div>
               ))
             )}
           </div>
         </div>
+      </div>
+      <div className="px-4 pb-4 flex justify-end gap-2">
+        <button
+          onClick={() => onSave(item).then(() => { if (item.serviceId) setIsEditing(false); })}
+          disabled={!isEditing}
+          className={`text-xs font-semibold text-white px-5 py-2 rounded-lg ${isEditing ? 'cursor-pointer bg-blue-700' : 'cursor-not-allowed bg-slate-400'}`}
+          style={{ backgroundColor: isEditing ? '#1D4ED8' : undefined }}
+        >
+          {item.serviceId ? 'บันทึก' : 'สร้าง'}
+        </button>
       </div>
     </div>
   );

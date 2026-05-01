@@ -5,6 +5,8 @@ import {
   updateServiceJobById,
   getServiceJobsByRequest,
   assignTechnician,
+  replaceServiceJobParts,
+  replaceServiceJobTechnicians,
   removeTechnician,
 } from '../../services/service/service-job.service';
 
@@ -74,6 +76,32 @@ export async function assignTechnicianToJob(req: Request, res: Response) {
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to assign technician';
     const statusCode = message.includes('not found') ? 404 : message.includes('already assigned') ? 409 : 500;
+    return res.status(statusCode).json({ success: false, message });
+  }
+}
+
+export async function replaceServiceJobPartsHandler(req: Request, res: Response) {
+  try {
+    const { id } = req.params;
+    const { parts } = req.body;
+    const data = await replaceServiceJobParts(id, parts || []);
+    return res.status(200).json({ success: true, data });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to update service job parts';
+    const statusCode = message.includes('not found') ? 404 : 400;
+    return res.status(statusCode).json({ success: false, message });
+  }
+}
+
+export async function replaceServiceJobTechniciansHandler(req: Request, res: Response) {
+  try {
+    const { id } = req.params;
+    const { technicianIds } = req.body;
+    const data = await replaceServiceJobTechnicians(id, technicianIds || []);
+    return res.status(200).json({ success: true, data });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to update service job technicians';
+    const statusCode = message.includes('not found') ? 404 : 400;
     return res.status(statusCode).json({ success: false, message });
   }
 }

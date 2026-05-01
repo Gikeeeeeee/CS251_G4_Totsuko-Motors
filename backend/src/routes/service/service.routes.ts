@@ -7,6 +7,8 @@ import {
   updateServiceJob,
   getServiceJobsByRequestId,
   assignTechnicianToJob,
+  replaceServiceJobPartsHandler,
+  replaceServiceJobTechniciansHandler,
   removeTechnicianFromJob,
 } from '../../controllers/service/service-job.controller';
 import { createServiceController } from '../../controllers/service/service-request.controller';
@@ -30,6 +32,8 @@ router.get('/:requestId/service-jobs', getServiceJobsByRequestId);
 router.post('/:serviceId/service-job', createServiceJob);
 router.get('/service-job/:id', getServiceJob);
 router.put('/service-job/:id', updateServiceJob);
+router.put('/service-job/:id/parts', replaceServiceJobPartsHandler);
+router.put('/service-job/:id/assign', replaceServiceJobTechniciansHandler);
 router.post('/service-job/:id/parts', createUsePart);
 router.post('/service-job/:id/assign', assignTechnicianToJob);
 router.delete('/service-job/:id/assign/:technicianId', removeTechnicianFromJob);

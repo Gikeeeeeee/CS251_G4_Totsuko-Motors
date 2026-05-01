@@ -5,6 +5,8 @@ import {
   findServiceJobsByRequestId,
   findServiceRequestById,
   updateServiceJobRecord,
+  replaceUseParts,
+  replaceAssignments,
   UpdateServiceJobRecord,
   findAssignTo,
   createAssignTo,
@@ -143,6 +145,38 @@ export async function assignTechnician(serviceId: string, technicianId: string) 
   if (existing) throw new Error('Technician already assigned to this job');
 
   return createAssignTo(serviceId, technicianId);
+}
+
+export async function replaceServiceJobParts(serviceId: string, parts: Array<{ part_id?: string; quantity?: number | string }>) {
+  const job = await findServiceJobDetailById(serviceId);
+  if (!job) throw new Error('Service job not found');
+
+  const normalizedParts = (parts || []).map((part) => {
+    if (!part.part_id) throw new Error('part_id is required');
+    const quantity = Number(part.quantity);
+    if (!Number.isFinite(quantity) || quantity < 0) throw new Error('quantity must be a valid non-negative number');
+    return { partId: part.part_id, quantity };
+  });
+
+  return replaceUseParts(serviceId, normalizedParts);
+}
+
+export async function replaceServiceJobTechnicians(serviceId: string, technicianIds: string[]) {
+  const job = await findServiceJobDetailById(serviceId);
+  if (!job) throw new Error('Service job not found');
+
+  if (!Array.isArray(technicianIds)) {
+    throw new Error('technicians is required');
+  }
+
+  const normalizedIds = technicianIds.map((id) => {
+    if (typeof id !== 'string' || id.trim() === '') {
+      throw new Error('technicianId must be a valid string');
+    }
+    return id.trim();
+  });
+
+  return replaceAssignments(serviceId, normalizedIds);
 }
 
 export async function removeTechnician(serviceId: string, technicianId: string) {

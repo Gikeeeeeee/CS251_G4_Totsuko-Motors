@@ -205,3 +205,53 @@ export async function deleteAssignTo(serviceId: string, technicianId: string) {
   );
   return result.rows[0] ?? null;
 }
+
+export async function replaceUseParts(serviceId: string, parts: Array<{ partId: string; quantity: number }>) {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query(`DELETE FROM "UsePart" WHERE service_id = $1`, [serviceId]);
+
+    const inserted = [];
+    for (const part of parts) {
+      const result = await client.query(
+        `INSERT INTO "UsePart" (service_id, part_id, quantity) VALUES ($1, $2, $3) RETURNING *`,
+        [serviceId, part.partId, part.quantity],
+      );
+      inserted.push(result.rows[0]);
+    }
+
+    await client.query('COMMIT');
+    return inserted;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+export async function replaceAssignments(serviceId: string, technicianIds: string[]) {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query(`DELETE FROM "AssignTo" WHERE service_id = $1`, [serviceId]);
+
+    const inserted = [];
+    for (const technicianId of technicianIds) {
+      const result = await client.query(
+        `INSERT INTO "AssignTo" (service_id, technician_id) VALUES ($1, $2) RETURNING *`,
+        [serviceId, technicianId],
+      );
+      inserted.push(result.rows[0]);
+    }
+
+    await client.query('COMMIT');
+    return inserted;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
