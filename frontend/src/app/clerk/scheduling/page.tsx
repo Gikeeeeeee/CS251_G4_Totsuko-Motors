@@ -199,12 +199,15 @@ export default function SchedulingPage() {
       // ใช้ appointmentId จริงจาก backend
       const realId = res.data.data.appointmentId;
 
+      // สร้าง Date object ที่มีเวลาเป็น 00:00:00 เหมือนกับ selectedDate
+      const appointmentDate = new Date(yyyy, selectedDate.getMonth(), selectedDate.getDate());
+
       setAppointments((prev) => [
         ...prev,
         {
           id: realId,
-          date: new Date(selectedDate),
-          day: selectedDate.getDay(),
+          date: appointmentDate,
+          day: appointmentDate.getDay(),
           startSlot,
           endSlot,
           plate: fullPlate,
@@ -478,8 +481,15 @@ export default function SchedulingPage() {
               ))
             )}
 
-            {/* Appointment blocks (overlay) — กรองเฉพาะสัปดาห์เดียวกับ selectedDate */}
-            {appointments.filter((a) => isSameWeek(a.date, selectedDate)).map((a) => (
+            {/* Appointment blocks (overlay) — กรองเฉพาะวันที่เลือก */}
+            {appointments.filter((a) => {
+              // เปรียบเทียบเฉพาะวันที่ (ไม่สนใจเวลา)
+              return (
+                a.date.getFullYear() === selectedDate.getFullYear() &&
+                a.date.getMonth() === selectedDate.getMonth() &&
+                a.date.getDate() === selectedDate.getDate()
+              );
+            }).map((a) => (
               <div
                 key={a.id}
                 className="p-1"
