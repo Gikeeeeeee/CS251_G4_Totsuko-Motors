@@ -1,8 +1,9 @@
 'use client';
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, Suspense } from 'react';
 import Image from 'next/image';
 import CarImage from '@/public/car.png';
 import apiClient from '@/services/apiClient';
+import { useSearchParams } from 'next/navigation';
 
 type Technician = {
   employeeId: string;
@@ -42,9 +43,17 @@ type ServiceRequestData = {
   vehicleType: string;
 };
 
-const REQUEST_ID = 'REQ-001';
-
 export default function OperatingPage() {
+  return (
+    <Suspense fallback={<div className="rounded-lg flex items-center justify-center py-10 border border-slate-200"><span className="text-sm text-slate-400">Loading...</span></div>}>
+      <OperatingPageContent />
+    </Suspense>
+  );
+}
+
+function OperatingPageContent() {
+  const searchParams = useSearchParams();
+  const requestId = searchParams.get('requestId') ?? '';
   const [data, setData] = useState<ServiceRequestData | null>(null);
   const [appointment, setAppointment] = useState<AppointmentData>({
     appointmentDate: '',
@@ -68,12 +77,12 @@ export default function OperatingPage() {
 
   useEffect(() => {
     apiClient
-      .get<{ success: boolean; data: ServiceRequestData }>(`/service/service-request/${REQUEST_ID}`)
+      .get<{ success: boolean; data: ServiceRequestData }>(`/service/service-request/${requestId}`)
       .then((res) => setData(res.data.data))
       .catch(() => {});
 
     apiClient
-      .get<{ success: boolean; data: any[] }>(`/service/${REQUEST_ID}/service-jobs`)
+      .get<{ success: boolean; data: any[] }>(`/service/${requestId}/service-jobs`)
       .then((res) => {
         let jobIndex = 0;
         let otherIndex = 0;
@@ -127,7 +136,7 @@ export default function OperatingPage() {
       });
 
     apiClient
-      .get<{ message: string; data: any[] }>(`/appointments/request/${REQUEST_ID}`)
+      .get<{ message: string; data: any[] }>(`/appointments/request/${requestId}`)
       .then((res) => {
         const appointmentData = res.data.data[0];
         if (!appointmentData) return;
@@ -139,10 +148,8 @@ export default function OperatingPage() {
           notes: appointmentData.notes || '',
         });
       })
-      .catch(() => {
-        // keep initial mock appointment values
-      });
-  }, []);
+      .catch(() => {});
+  }, [requestId]);
 
   const handleSaveAppointment = async (updated: AppointmentData) => {
     const body: Record<string, unknown> = {
@@ -171,7 +178,7 @@ export default function OperatingPage() {
     }
 
     const { data: res } = await apiClient.post('/appointments', {
-      request_id: REQUEST_ID,
+      request_id: requestId,
       appointment_date: parseBEToISO(updated.appointmentDate),
       notes: updated.notes || '',
     });
@@ -226,15 +233,15 @@ export default function OperatingPage() {
 
           {/* Service Job & Other Service */}
           <div className="mt-4 bg-white rounded-xl border border-slate-200 p-5">
-            <ServiceJobSection jobs={jobs} setJobs={setJobs} />
-            <OtherServiceSection items={otherItems} setItems={setOtherItems} />
+            <ServiceJobSection jobs={jobs} setJobs={setJobs} requestId={requestId} />
+            <OtherServiceSection items={otherItems} setItems={setOtherItems} requestId={requestId} />
           </div>
 
           {/* Appointment Card */}
           <AppointmentCard data={data} appointment={appointment} onSave={handleSaveAppointment} />
 
           {/* Invoice Card */}
-          <InvoiceCard data={data} jobs={jobs} otherItems={otherItems} />
+          <InvoiceCard data={data} jobs={jobs} otherItems={otherItems} requestId={requestId} />
 
         </div>
       )}
@@ -242,7 +249,7 @@ export default function OperatingPage() {
   );
 }
 
-function InvoiceCard({ jobs, otherItems }: { data: ServiceRequestData | null; jobs: ServiceJob[]; otherItems: OtherService[] }) {
+function InvoiceCard({ jobs, otherItems, requestId }: { data: ServiceRequestData | null; jobs: ServiceJob[]; otherItems: OtherService[]; requestId: string }) {
   const [isSending, setIsSending] = useState(false);
   const [sentToClerk, setSentToClerk] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
@@ -304,7 +311,7 @@ function InvoiceCard({ jobs, otherItems }: { data: ServiceRequestData | null; jo
     setSendError(null);
     try {
       await apiClient.post('/invoices', {
-        request_id: REQUEST_ID,
+        request_id: requestId,
         payment_status: 'Unpaid',
         total_amount: grand,
         details: lineItems,
@@ -815,7 +822,7 @@ function PartPickerModal({ onAdd, onClose }: { onAdd: (part: Part, qty: number) 
   );
 }
 
-function ServiceJobSection({ jobs, setJobs }: { jobs: ServiceJob[]; setJobs: React.Dispatch<React.SetStateAction<ServiceJob[]>> }) {
+function ServiceJobSection({ jobs, setJobs, requestId }: { jobs: ServiceJob[]; setJobs: React.Dispatch<React.SetStateAction<ServiceJob[]>>; requestId: string }) {
   const addJob = () =>
     setJobs(prev => [...prev, {
       id: prev.length + 1,
@@ -853,7 +860,7 @@ function ServiceJobSection({ jobs, setJobs }: { jobs: ServiceJob[]; setJobs: Rea
       return;
     }
 
-    const { data: res } = await apiClient.post(`/service/${REQUEST_ID}/service-job`, {
+    const { data: res } = await apiClient.post(`/service/${requestId}/service-job`, {
       service_type: 'repair',
       ...jobPayload,
       service_status: job.status,
@@ -1090,7 +1097,7 @@ type OtherService = {
   technicians: { employeeId: string; name: string }[];
 };
 
-function OtherServiceSection({ items, setItems }: { items: OtherService[]; setItems: React.Dispatch<React.SetStateAction<OtherService[]>> }) {
+function OtherServiceSection({ items, setItems, requestId }: { items: OtherService[]; setItems: React.Dispatch<React.SetStateAction<OtherService[]>>; requestId: string }) {
   const addItem = () =>
     setItems(prev => [...prev, {
       id: prev.length + 1,
@@ -1123,7 +1130,7 @@ function OtherServiceSection({ items, setItems }: { items: OtherService[]; setIt
       return;
     }
 
-    const { data: res } = await apiClient.post(`/service/${REQUEST_ID}/service-job`, payload);
+    const { data: res } = await apiClient.post(`/service/${requestId}/service-job`, payload);
     const serviceId: string = res.data.service_id;
     setItems(prev => prev.map(s => (s.id === item.id ? { ...s, serviceId } : s)));
 
