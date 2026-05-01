@@ -56,12 +56,17 @@ INSERT INTO "AssignTo" (service_id, technician_id) VALUES
 ('JOB-001', '6709616764'),
 ('JOB-001', '6701234567');
 
--- 10. สร้างข้อมูลอะไหล่ (Part) ในระบบ
-INSERT INTO "Part" (part_id, part_name, stock_quantity, price, reorder_point, reserved_qty) VALUES
-('P-001', 'สายพานหน้าเครื่อง Honda', 10, 850.00, 5, 1),
-('P-002', 'น้ำยาแอร์ R134a', 20, 300.00, 10, 2);
+-- 10. สร้างข้อมูล Supplier ก่อน (Part อ้างอิง supplier_id)
+INSERT INTO "Supplier" (supplier_id, supplier_name, phone,email, address) VALUES
+('SUP-001', 'MotoParts Co., Ltd.', '0811111111', 'contact@moto parts.com', 'Maryland, USA'),
+('SUP-002', 'AutoSupplies Inc.', '0822222222', 'data@autosupplies.com', 'Portland, OR, USA');
 
--- 11. เบิกอะไหล่มาใช้ในงานซ่อม (UsePart)
+-- 11. สร้างข้อมูลอะไหล่ (Part) ในระบบ
+INSERT INTO "Part" (part_id, part_name, stock_quantity, price, reorder_point, reserved_qty, supplier_id) VALUES
+('P-001', 'สายพานหน้าเครื่อง Honda', 10, 850.00, 5, 1, 'SUP-001'),
+('P-002', 'น้ำยาแอร์ R134a', 20, 300.00, 10, 2, 'SUP-002');
+
+-- 12. เบิกอะไหล่มาใช้ในงานซ่อม (UsePart)
 INSERT INTO "UsePart" (service_id, part_id, quantity) VALUES
 ('JOB-001', 'P-001', 1),
 ('JOB-001', 'P-002', 2);
@@ -75,5 +80,6 @@ INSERT INTO "InvoiceDetail" (invoice_id, details, amount) VALUES
 ('INV-001', 'ค่าแรงตรวจเช็คและซ่อมเครื่องยนต์', 500.00),
 ('INV-001', 'ค่าสายพานหน้าเครื่อง Honda', 850.00),
 ('INV-001', 'ค่าน้ำยาแอร์ R134a (2 หน่วย)', 600.00);
+
 
 COMMIT;
