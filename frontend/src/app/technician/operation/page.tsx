@@ -18,6 +18,13 @@ type Part = {
   status: string;
 };
 
+type AppointmentData = {
+  appointmentId?: string;
+  appointmentDate: string;
+  status: 'SCHEDULED' | 'POSTPONED' | 'COMPLETED' | 'CANCELLED';
+  notes?: string;
+};
+
 type MockData = {
   plateNumber: string;
   name: string;
@@ -26,9 +33,7 @@ type MockData = {
   year: number;
   color: string;
   problemDescription: string;
-  appointment: {
-    appointmentDate: string;
-  };
+  appointment: AppointmentData;
   serviceJobs: string[];
   otherServices: string[];
   invoiceItems: { partName: string; stockQuantity: number; qtyUsed: number; price: number }[];
@@ -46,6 +51,8 @@ const MOCK: MockData = {
   problemDescription: 'สังเกตยางใบรถ, ยางระเบิด, แนะให้ฟ้าคนขับเสีย',
   appointment: {
     appointmentDate: '12/04/2568',
+    status: 'SCHEDULED',
+    notes: '',
   },
   serviceJobs: [],
   otherServices: [],
@@ -54,8 +61,21 @@ const MOCK: MockData = {
 
 export default function OperatingPage() {
   const [data, setData] = useState<MockData | null>(null);
+  const [appointment, setAppointment] = useState<AppointmentData>(MOCK.appointment);
   const [jobs, setJobs] = useState<ServiceJob[]>([]);
   const [otherItems, setOtherItems] = useState<OtherService[]>([]);
+
+  const formatDateFromBackend = (value: string) => {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return appointment.appointmentDate;
+    return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear() + 543}`;
+  };
+
+  const parseBEToISO = (value: string) => {
+    const [d, m, y] = value.split('/').map(Number);
+    if (!d || !m || !y) return new Date().toISOString();
+    return new Date(y - 543, m - 1, d).toISOString();
+  };
 
   useEffect(() => {
     setData(MOCK);
@@ -113,7 +133,64 @@ export default function OperatingPage() {
         setJobs([]);
         setOtherItems([]);
       });
+
+    apiClient
+      .get<{ message: string; data: any[] }>(`/appointments/request/${REQUEST_ID}`)
+      .then((res) => {
+        const appointmentData = res.data.data[0];
+        if (!appointmentData) return;
+
+        setAppointment({
+          appointmentId: appointmentData.appointmentId,
+          appointmentDate: formatDateFromBackend(appointmentData.appointmentDate),
+          status: appointmentData.appointStatus || 'SCHEDULED',
+          notes: appointmentData.notes || '',
+        });
+      })
+      .catch(() => {
+        // keep initial mock appointment values
+      });
   }, []);
+
+  const handleSaveAppointment = async (updated: AppointmentData) => {
+    const body: Record<string, unknown> = {
+      status: updated.status,
+      notes: updated.notes || '',
+    };
+
+    if (!updated.appointmentDate) {
+      throw new Error('Appointment date is required');
+    }
+
+    if (updated.status === 'POSTPONED' || updated.status === 'SCHEDULED') {
+      body.appointment_date = parseBEToISO(updated.appointmentDate);
+    }
+
+    if (updated.appointmentId) {
+      const { data: res } = await apiClient.put(`/appointments/${updated.appointmentId}`, body);
+      const saved = res.data.data;
+      setAppointment({
+        appointmentId: saved.appointmentId || updated.appointmentId,
+        appointmentDate: formatDateFromBackend(saved.appointmentDate),
+        status: saved.appointStatus || updated.status,
+        notes: saved.notes || updated.notes,
+      });
+      return;
+    }
+
+    const { data: res } = await apiClient.post('/appointments', {
+      request_id: REQUEST_ID,
+      appointment_date: parseBEToISO(updated.appointmentDate),
+      notes: updated.notes || '',
+    });
+    const saved = res.data.data;
+    setAppointment({
+      appointmentId: saved.appointmentId,
+      appointmentDate: formatDateFromBackend(saved.appointmentDate),
+      status: saved.appointStatus || 'SCHEDULED',
+      notes: saved.notes || updated.notes,
+    });
+  };
 
   return (
     <div>
@@ -172,7 +249,7 @@ export default function OperatingPage() {
           </div>
 
           {/* Appointment Card */}
-          <AppointmentCard data={data} />
+          <AppointmentCard data={data} appointment={appointment} onSave={handleSaveAppointment} />
 
           {/* Invoice Card */}
           <InvoiceCard data={data} jobs={jobs} otherItems={otherItems} />
@@ -184,6 +261,10 @@ export default function OperatingPage() {
 }
 
 function InvoiceCard({ jobs, otherItems }: { data: MockData; jobs: ServiceJob[]; otherItems: OtherService[] }) {
+  const [isSending, setIsSending] = useState(false);
+  const [sentToClerk, setSentToClerk] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
+
   const partsMap = new Map<string, { qty: number; price: number; stockQuantity: number }>();
   for (const job of jobs) {
     for (const p of job.parts) {
@@ -218,9 +299,53 @@ function InvoiceCard({ jobs, otherItems }: { data: MockData; jobs: ServiceJob[];
 
   const fmt = (n: number) => n.toLocaleString('th-TH', { minimumFractionDigits: 2 });
 
+  const lineItems = [
+    ...partRows.map((r) => ({ details: `อะไหล่ ${r.name} x${r.qty} @ ${fmt(r.price)}`, amount: r.price * r.qty })),
+    ...serviceRows.map((r) => ({ details: `งาน ${r.name}`, amount: r.price })),
+  ];
+
+  if (laborCost > 0) {
+    lineItems.push({ details: `ค่าแรง (${techCount} คน)`, amount: laborCost });
+  }
+
+  if (tax > 0) {
+    lineItems.push({ details: 'ภาษี 7%', amount: tax });
+  }
+
+  const handleSendToClerk = async () => {
+    setIsSending(true);
+    setSendError(null);
+    try {
+      await apiClient.post('/invoices', {
+        request_id: REQUEST_ID,
+        payment_status: 'Unpaid',
+        total_amount: grand,
+        details: lineItems,
+      });
+      setSentToClerk(true);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to send invoice';
+      setSendError(message);
+    } finally {
+      setIsSending(false);
+    }
+  };
+
   return (
     <div className="bg-white rounded-xl border border-slate-200 p-5">
-      <div className="font-bold text-slate-800 text-base mb-3">Invoice</div>
+      <div className="flex items-center justify-between mb-3">
+        <div className="font-bold text-slate-800 text-base">Invoice</div>
+        <button
+          onClick={handleSendToClerk}
+          disabled={isSending || sentToClerk}
+          className={`text-xs font-semibold text-white px-4 py-2 rounded-lg ${sentToClerk ? 'bg-slate-400 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700 cursor-pointer'}`}
+        >
+          {sentToClerk ? 'Sent to Clerk' : isSending ? 'Sending...' : 'Send to Clerk'}
+        </button>
+      </div>
+      {sendError && (
+        <div className="mb-3 text-xs text-red-600">{sendError}</div>
+      )}
       <div className="rounded-xl overflow-hidden border border-blue-100">
         <div className="grid grid-cols-[2fr_1fr_1fr_1fr] px-5 py-2 text-[10px] uppercase tracking-widest text-slate-600 font-semibold" style={{ backgroundColor: '#AFDCF7' }}>
           <span>Part Name</span>
@@ -280,10 +405,11 @@ function DatePicker({ value, onChange, disabled }: { value: string; onChange: (v
     if (!d || !m || !y) return new Date();
     return new Date(y - 543, m - 1, d);
   };
+
   const formatBE = (date: Date) =>
     `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear() + 543}`;
 
-  const selected = parseBE(value);
+  const selected = parseBE(value || `${new Date().getDate()}/${new Date().getMonth() + 1}/${new Date().getFullYear() + 543}`);
   const [viewYear, setViewYear] = useState(selected.getFullYear());
   const [viewMonth, setViewMonth] = useState(selected.getMonth());
 
@@ -298,13 +424,29 @@ function DatePicker({ value, onChange, disabled }: { value: string; onChange: (v
   const thaiMonths = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
   const firstDay = new Date(viewYear, viewMonth, 1).getDay();
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
-  const prevMonth = () => { if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1); } else setViewMonth(m => m - 1); };
-  const nextMonth = () => { if (viewMonth === 11) { setViewMonth(0); setViewYear(y => y + 1); } else setViewMonth(m => m + 1); };
+
+  const prevMonth = () => {
+    if (viewMonth === 0) {
+      setViewMonth(11);
+      setViewYear((y) => y - 1);
+    } else {
+      setViewMonth((m) => m - 1);
+    }
+  };
+
+  const nextMonth = () => {
+    if (viewMonth === 11) {
+      setViewMonth(0);
+      setViewYear((y) => y + 1);
+    } else {
+      setViewMonth((m) => m + 1);
+    }
+  };
 
   return (
     <div className="relative" ref={ref}>
       <button
-        onClick={() => setOpen(v => !v)}
+        onClick={() => setOpen((v) => !v)}
         disabled={disabled}
         className={`w-28 text-center text-sm rounded-lg border border-blue-200 bg-white px-2 py-1 outline-none ${disabled ? 'cursor-not-allowed bg-slate-100 text-slate-400' : 'hover:border-blue-400 cursor-pointer'}`}
       >
@@ -318,7 +460,7 @@ function DatePicker({ value, onChange, disabled }: { value: string; onChange: (v
             <button onClick={nextMonth} className="px-2 py-0.5 rounded hover:bg-slate-100 cursor-pointer">›</button>
           </div>
           <div className="grid grid-cols-7 text-center text-[10px] text-slate-400 mb-1">
-            {['อา','จ','อ','พ','พฤ','ศ','ส'].map(d => <div key={d}>{d}</div>)}
+            {['อา','จ','อ','พ','พฤ','ศ','ส'].map((d) => <div key={d}>{d}</div>)}
           </div>
           <div className="grid grid-cols-7 text-center text-xs gap-y-0.5">
             {Array.from({ length: firstDay }).map((_, i) => <div key={`e${i}`} />)}
@@ -326,7 +468,8 @@ function DatePicker({ value, onChange, disabled }: { value: string; onChange: (v
               const day = i + 1;
               const isSel = selected.getFullYear() === viewYear && selected.getMonth() === viewMonth && selected.getDate() === day;
               return (
-                <button key={day}
+                <button
+                  key={day}
                   onClick={() => { onChange(formatBE(new Date(viewYear, viewMonth, day))); setOpen(false); }}
                   className={`py-1 rounded-full text-[11px] leading-tight cursor-pointer ${isSel ? 'bg-blue-600 text-white' : 'hover:bg-slate-100 text-slate-700'}`}
                 >
@@ -341,9 +484,14 @@ function DatePicker({ value, onChange, disabled }: { value: string; onChange: (v
   );
 }
 
-function AppointmentCard({ data }: { data: MockData }) {
-  const [isEditing, setIsEditing] = useState(false);
-  const [appt, setAppt] = useState(data.appointment);
+function AppointmentCard({ data, appointment, onSave }: { data: MockData; appointment: AppointmentData; onSave: (appointment: AppointmentData) => Promise<void> }) {
+  const [isEditing, setIsEditing] = useState(!appointment.appointmentId);
+  const [appt, setAppt] = useState<AppointmentData>(appointment);
+
+  useEffect(() => {
+    setAppt(appointment);
+    setIsEditing(!appointment.appointmentId);
+  }, [appointment]);
 
   const Field = ({ label, value }: { label: string; value: string }) => (
     <div>
@@ -369,7 +517,7 @@ function AppointmentCard({ data }: { data: MockData }) {
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
             <path d="M8.5 1.5L10.5 3.5L4 10H2V8L8.5 1.5Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
           </svg>
-          {isEditing ? 'Save' : 'Edit'}
+          {isEditing ? 'Cancel' : 'Edit'}
         </button>
       </div>
 
@@ -393,6 +541,39 @@ function AppointmentCard({ data }: { data: MockData }) {
           <Field label="Plate Number" value={data.plateNumber} />
           <Field label="Brand" value={data.brand} />
           <Field label="Year" value={String(data.year)} />
+        </div>
+        <div className="mt-4">
+          <div className="text-[10px] uppercase tracking-widest text-slate-400 mb-1">Status</div>
+          <select
+            value={appt.status}
+            disabled={!isEditing}
+            onChange={(e) => setAppt({ ...appt, status: e.target.value as AppointmentData['status'] })}
+            className={`w-full rounded-lg border border-blue-200 px-3 py-2 outline-none ${isEditing ? 'bg-white' : 'bg-slate-100 text-slate-500 cursor-not-allowed'}`}
+          >
+            <option value="SCHEDULED">SCHEDULED</option>
+            <option value="POSTPONED">POSTPONED</option>
+            <option value="COMPLETED">COMPLETED</option>
+            <option value="CANCELLED">CANCELLED</option>
+          </select>
+        </div>
+        <div className="mt-4">
+          <div className="text-[10px] uppercase tracking-widest text-slate-400 mb-1">Notes</div>
+          <textarea
+            value={appt.notes || ''}
+            onChange={(e) => setAppt({ ...appt, notes: e.target.value })}
+            disabled={!isEditing}
+            className={`w-full min-h-[80px] rounded-lg border border-blue-200 px-3 py-2 text-sm outline-none ${isEditing ? 'bg-white' : 'bg-slate-100 text-slate-500 cursor-not-allowed'}`}
+            placeholder="เพิ่มหมายเหตุ..."
+          />
+        </div>
+        <div className="mt-4 flex justify-end">
+          <button
+            onClick={() => onSave(appt).then(() => setIsEditing(false)).catch(() => {})}
+            disabled={!isEditing}
+            className={`text-xs font-semibold text-white px-5 py-2 rounded-lg ${isEditing ? 'bg-blue-700 cursor-pointer' : 'bg-slate-400 cursor-not-allowed'}`}
+          >
+            {appt.appointmentId ? 'บันทึก' : 'สร้าง'}
+          </button>
         </div>
       </div>
     </div>

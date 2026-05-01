@@ -92,8 +92,33 @@ export async function updateAppointmentStatus(appointmentId: string, body: Updat
     return postponeAppointmentTransaction(appointmentId, body.notes, newRecord);
   }
 
-  // 3. Normal update (CANCELLED, COMPLETED)
-  // Ensure valid transition
+  // 3. SCHEDULED update (date change or notes change)
+  if (newStatus === AppointmentStatus.SCHEDULED) {
+    const updateData: Partial<{ appointmentDate: Date; notes: string }> = {};
+
+    if (body.appointment_date) {
+      const newDate = new Date(body.appointment_date);
+      if (isNaN(newDate.getTime())) {
+        throw new Error('Invalid appointment_date format');
+      }
+      if (newDate < new Date()) {
+        throw new Error('New appointment_date cannot be in the past');
+      }
+      updateData.appointmentDate = newDate;
+    }
+
+    if (body.notes !== undefined) {
+      updateData.notes = body.notes;
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return currentAppointment;
+    }
+
+    return updateAppointment(appointmentId, updateData);
+  }
+
+  // 4. Normal update (CANCELLED, COMPLETED)
   if (
     newStatus !== AppointmentStatus.CANCELLED &&
     newStatus !== AppointmentStatus.COMPLETED

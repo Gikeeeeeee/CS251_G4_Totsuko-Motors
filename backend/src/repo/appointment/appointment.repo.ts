@@ -44,7 +44,7 @@ export async function getAppointmentById(appointmentId: string) {
 
 export async function updateAppointment(
   appointmentId: string,
-  data: Partial<{ appointStatus: string; notes: string }>
+  data: Partial<{ appointStatus: string; appointmentDate: Date; notes: string }>
 ) {
   const [updated] = await db
     .update(appointment)
