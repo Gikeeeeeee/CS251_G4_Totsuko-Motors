@@ -33,7 +33,7 @@ export default function TechnicianPage() {
     useEffect(() => {
         const loadData = async () => {
             try {
-                // 🛠️ ชี้ไปยัง Endpoint ของคุณพีตตามที่ทดสอบด้วย curl
+                
                 const res = await apiClient.get('/technicians/requests'); 
                 const apiData = res.data?.data || res.data || [];
 
