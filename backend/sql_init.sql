@@ -58,8 +58,8 @@ INSERT INTO "AssignTo" (service_id, technician_id) VALUES
 
 -- 10. สร้างข้อมูล Supplier ก่อน (Part อ้างอิง supplier_id)
 INSERT INTO "Supplier" (supplier_id, supplier_name, phone,email, address) VALUES
-('SUP-001', 'MotoParts Co., Ltd.', '0811111111', 'contact@moto parts.com', 'Maryland, USA'),
-('SUP-002', 'AutoSupplies Inc.', '0822222222', 'data@autosupplies.com', 'Portland, OR, USA');
+('SUP-005', 'MotoParts Co., Ltd.', '0811111111', 'contact@moto parts.com', 'Maryland, USA'),
+('SUP-006', 'AutoSupplies Inc.', '0822222222', 'data@autosupplies.com', 'Portland, OR, USA');
 
 -- 11. สร้างข้อมูลอะไหล่ (Part) ในระบบ
 INSERT INTO "Part" (part_id, part_name, stock_quantity, price, reorder_point, reserved_qty, supplier_id) VALUES

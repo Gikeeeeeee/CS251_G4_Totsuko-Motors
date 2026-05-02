@@ -13,15 +13,17 @@ import {
   deleteServiceJobHandler,
 } from '../../controllers/service/service-job.controller';
 import { createServiceController } from '../../controllers/service/service-request.controller';
+
+import { getTechnicianRequests } from '../../controllers/service/technician-requests.controller';
+
 import {
   getAvailableParts,
   getPurchaseOrders,
   getPurchaseOrderParts,
   updateOrderStatus,
   postPurchaseOrder,
-  getSuppliers
+  getSuppliers,
 } from '../../controllers/service/purchase-order.controller';
-
 import { authMiddleware } from '../../middlewares/auth.middleware';
 
 const router = Router();
@@ -36,9 +38,13 @@ router.put('/service-job/:id', updateServiceJob);
 router.put('/service-job/:id/parts', replaceServiceJobPartsHandler);
 router.put('/service-job/:id/assign', replaceServiceJobTechniciansHandler);
 router.post('/service-job/:id/parts', createUsePart);
+
 router.post('/service-job/:id/assign', assignTechnicianToJob);
 router.delete('/service-job/:id', deleteServiceJobHandler);
 router.delete('/service-job/:id/assign/:technicianId', removeTechnicianFromJob);
+
+router.get('/technician/requests', getTechnicianRequests);
+
 
 router.get('/suppliers', getSuppliers);// เส้นดึงข้อมูลรายชื่อ supplier
 router.get('/parts', getAvailableParts);// เส้นดึงข้อมูลอะไหล่ที่มีอยู่ในระบบ

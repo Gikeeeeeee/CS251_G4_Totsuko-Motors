@@ -19,18 +19,21 @@ export default function Sidebar() {
     },
     {
       name: 'Operating',
-      href: '/technician/operating',
+      href: '/technician/operation',
       icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-        </svg>
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+        <path d="M2 11.5L3.5 7.5H14.5L16 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+        <rect x="1.5" y="11.5" width="15" height="4" rx="1" stroke="currentColor" strokeWidth="1.5"/>
+        <circle cx="5" cy="13.5" r="1" fill="currentColor"/>
+        <circle cx="13" cy="13.5" r="1" fill="currentColor"/>
+        <path d="M6 7.5L7 4H11L12 7.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+      </svg>
       ),
     },
   ];
 
   return (
-    <aside className="w-100 min-h-screen bg-[#F1F5F9] border-r border-gray-200 flex flex-col">
+    <aside className="fixed top-0 left-0 w-[256px] min-h-screen bg-[#F1F5F9] border-r border-gray-200 flex flex-col">
       {/* Logo Section */}
       <div className="p-6 h-[127px]">
         <div className="flex items-center gap-2 justify-center">

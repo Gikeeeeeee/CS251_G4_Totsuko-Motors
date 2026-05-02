@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/static-components */
 'use client';
 import React, { useState, useRef, useEffect, Suspense } from 'react';
 import Image from 'next/image';
@@ -10,6 +11,7 @@ type Technician = {
   name: string;
   specialization: string;
 };
+
 
 type Part = {
   partId: string;
@@ -41,6 +43,7 @@ type ServiceRequestData = {
   year: number | string;
   color: string;
   vehicleType: string;
+
 };
 
 export default function OperatingPage() {
@@ -194,7 +197,9 @@ function OperatingPageContent() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
+
         <h1 className="text-2xl font-bold" style={{ color: '#1E3A8A' }}>Operating</h1>
+
       </div>
 
       {data === null ? (
@@ -577,6 +582,7 @@ function AppointmentCard({ data, appointment, onSave }: { data: ServiceRequestDa
 
 // ─── Service Job ──────────────────────────────────────────────────────────────
 
+
 type ServiceJob = {
   id: number;
   serviceId?: string;
@@ -587,6 +593,7 @@ type ServiceJob = {
   parts: { partId: string; name: string; qty: number; price: number; stockQuantity: number }[];
   technicians: { employeeId: string; name: string }[];
 };
+
 
 
 const MOCK_SERVICES = [
@@ -1087,6 +1094,7 @@ function ServiceJobCard({ job, onChange, onDelete, onSave }: { job: ServiceJob; 
 
 // ─── Other Service ────────────────────────────────────────────────────────────
 
+
 type OtherService = {
   id: number;
   serviceId?: string;
@@ -1096,6 +1104,7 @@ type OtherService = {
   services: string[];
   technicians: { employeeId: string; name: string }[];
 };
+
 
 function OtherServiceSection({ items, setItems, requestId }: { items: OtherService[]; setItems: React.Dispatch<React.SetStateAction<OtherService[]>>; requestId: string }) {
   const addItem = () =>

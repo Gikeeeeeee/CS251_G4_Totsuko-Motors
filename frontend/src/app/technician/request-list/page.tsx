@@ -1,177 +1,81 @@
 'use client';
 
+import apiClient from '@/services/apiClient';
 import { useState, useEffect } from 'react';
 import Sidebar from '@/components/Sidebar';
 import TopNav from '@/components/TopNav';
 
 // Interface สำหรับกำหนดโครงสร้างข้อมูล
+// interface ServiceRequest {
+//     id: number;
+//     vehiclePlate: string;
+//     serviceId: string;
+//     customerName: string;
+//     vehicleModel: string;
+//     vehicleColor: string;
+//     problemDescription: string;
+//     status: 'INTAKE' | 'IN_PROGRESS' | 'COMPLETED';
+// }
+
 interface ServiceRequest {
-    id: number;
-    vehiclePlate: string;
-    serviceId: string;
+    requestId: string;
+    plateNumber: string;
     customerName: string;
-    vehicleModel: string;
-    vehicleColor: string;
-    problemDescription: string;
-    status: 'INTAKE' | 'IN_PROGRESS' | 'COMPLETED';
+    requestStatus: string;
+    problemDescription: string | null;
+    checkingDate: string;
+    odometer: number | null;
+    clerkName: string;
+    model: string | null;   // เพิ่ม
+    color: string | null;   // เพิ่ม
+    year: number | null;    // เพิ่ม
 }
 
-// ข้อมูลตัวอย่างสำหรับทดสอบ
-const mockData: ServiceRequest[] = [
-    {
-        id: 1,
-        vehiclePlate: '4ขศ 6931',
-        serviceId: 'SV011',
-        customerName: 'ผลไม้ ตลาดไท',
-        vehicleModel: 'Toyota Vios 2022',
-        vehicleColor: 'White',
-        problemDescription: 'ระบบเบรคมีปัญหา, ยางหน้าแตกทั้ง 2 เส้น, ขยะในรถมหาศาล',
-        status: 'INTAKE'
-    },
-    {
-        id: 2,
-        vehiclePlate: 'สส 911',
-        serviceId: 'SV012',
-        customerName: 'ธีธัช ปูอัด',
-        vehicleModel: 'Tesla Model 3 2018',
-        vehicleColor: 'Blue',
-        problemDescription: 'หน้าจอในรถไม่สามารถเขียน เท็ม เพล็ต ด็อท ยา แมว ได้',
-        status: 'INTAKE'
-    },
-    {
-        id: 3,
-        vehiclePlate: 'อนก 6773',
-        serviceId: 'SV013',
-        customerName: 'หมอน ทอง',
-        vehicleModel: 'Ford F-150 2014',
-        vehicleColor: 'Black',
-        problemDescription: 'Steering wheel มีปัญหา',
-        status: 'INTAKE'
-    },
-    {
-        id: 4,
-        vehiclePlate: 'ฌกก 8934',
-        serviceId: 'SV014',
-        customerName: 'ศรีสุดา ใครวะ',
-        vehicleModel: 'Honda Blue 2020',
-        vehicleColor: 'Grey',
-        problemDescription: 'กระจกเกิดมีรอยแตก, ตรวจเช็คสภาพรถ',
-        status: 'INTAKE'
-    },
-    {
-        id: 5,
-        vehiclePlate: 'กกต 1112',
-        serviceId: 'SV015',
-        customerName: 'ศุภจี รองนายก',
-        vehicleModel: 'Honda Z',
-        vehicleColor: 'Red',
-        problemDescription: 'แมลงชนเข้ากับกระจกหน้ารถกระเด็นเข้าตาฉัน',
-        status: 'INTAKE'
-    },
-    {
-        id: 6,
-        vehiclePlate: 'กกต 1112',
-        serviceId: 'SV015',
-        customerName: 'ศุภจี รองนายก',
-        vehicleModel: 'Honda Z',
-        vehicleColor: 'Red',
-        problemDescription: 'แมลงชนเข้ากับกระจกหน้ารถกระเด็นเข้าตาฉัน',
-        status: 'INTAKE'
-    },
-    {
-        id: 7,
-        vehiclePlate: 'กกต 1112',
-        serviceId: 'SV015',
-        customerName: 'ศุภจี รองนายก',
-        vehicleModel: 'Honda Z',
-        vehicleColor: 'Red',
-        problemDescription: 'แมลงชนเข้ากับกระจกหน้ารถกระเด็นเข้าตาฉัน',
-        status: 'INTAKE'
-    },
-    {
-        id: 8,
-        vehiclePlate: 'กกต 1112',
-        serviceId: 'SV015',
-        customerName: 'ศุภจี รองนายก',
-        vehicleModel: 'Honda Z',
-        vehicleColor: 'Red',
-        problemDescription: 'แมลงชนเข้ากับกระจกหน้ารถกระเด็นเข้าตาฉัน',
-        status: 'INTAKE'
-    },
-    {
-        id: 9,
-        vehiclePlate: 'กกต 1112',
-        serviceId: 'SV015',
-        customerName: 'ศุภจี รองนายก',
-        vehicleModel: 'Honda Z',
-        vehicleColor: 'Red',
-        problemDescription: 'แมลงชนเข้ากับกระจกหน้ารถกระเด็นเข้าตาฉัน',
-        status: 'INTAKE'
-    },
-    {
-        id: 10,
-        vehiclePlate: 'กกต 1112',
-        serviceId: 'SV015',
-        customerName: 'ศุภจี รองนายก',
-        vehicleModel: 'Honda Z',
-        vehicleColor: 'Red',
-        problemDescription: 'แมลงชนเข้ากับกระจกหน้ารถกระเด็นเข้าตาฉัน',
-        status: 'INTAKE'
-    },
-    {
-        id: 11,
-        vehiclePlate: 'กกต 1112',
-        serviceId: 'SV015',
-        customerName: 'ศุภจี รองนายก',
-        vehicleModel: 'Honda Z',
-        vehicleColor: 'Red',
-        problemDescription: 'แมลงชนเข้ากับกระจกหน้ารถกระเด็นเข้าตาฉัน',
-        status: 'INTAKE'
-    }
-];
+
 
 export default function TechnicianPage() {
-    // State สำหรับเก็บข้อมูลตาราง
     const [requests, setRequests] = useState<ServiceRequest[]>([]);
-
-    // State สำหรับสถานะกำลังโหลด
     const [loading, setLoading] = useState(true);
-
-    // State สำหรับคำค้นหา
     const [searchTerm, setSearchTerm] = useState('');
-
-    // State สำหรับ Pagination
     const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalItems, setTotalItems] = useState(0);
     const itemsPerPage = 10;
 
-    // โหลดข้อมูลเมื่อหน้าเปิดครั้งแรก
     useEffect(() => {
         const loadData = async () => {
             try {
-                // จำลองการโหลดข้อมูลจาก API (รอ 1 วินาที)
-                await new Promise(resolve => setTimeout(resolve, 1000));
-
-                // เซ็ตข้อมูล
-                setRequests(mockData);
+                const response = await apiClient.get('/service/technician/requests', {
+                    params: { page: currentPage, limit: itemsPerPage },
+                });
+                setRequests(response.data.data);
+                setTotalPages(response.data.meta.totalPages);
+                setTotalItems(response.data.meta.totalItems);
             } catch (error) {
                 console.error('Error loading data:', error);
             } finally {
-                // ปิด loading ไม่ว่าจะสำเร็จหรือไม่
                 setLoading(false);
             }
         };
-
         loadData();
-    }, []);
+    }, [currentPage]);
 
-    // คำนวณข้อมูลสำหรับหน้าปัจจุบัน
-    const indexOfLastItem = currentPage * itemsPerPage;
-    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-    const currentItems = requests.slice(indexOfFirstItem, indexOfLastItem);
-    const totalPages = Math.ceil(requests.length / itemsPerPage);
+    const indexOfFirstItem = (currentPage - 1) * itemsPerPage + 1;
+    const indexOfLastItem = Math.min(currentPage * itemsPerPage, totalItems);
+
+    // กรองรายการตามคำค้น — ค้นทั้งทะเบียน, ชื่อลูกค้า, requestId (case-insensitive)
+    const filteredRequests = requests.filter((r) => {
+        const q = searchTerm.trim().toLowerCase();
+        if (!q) return true;
+        return (
+            r.plateNumber.toLowerCase().includes(q) ||
+            r.customerName.toLowerCase().includes(q) ||
+            r.requestId.toLowerCase().includes(q)
+        );
+    });
 
     // Function จัดการเมื่อคลิกปุ่ม Receive
-    const handleReceive = (requestId: number) => {
+    const handleReceive = (requestId: string) => {
         console.log('Receive request ID:', requestId);
         alert(`รับงาน ID: ${requestId}`);
         // TODO: เรียก API เพื่ออัพเดทสถานะ
@@ -199,11 +103,11 @@ export default function TechnicianPage() {
     // ถ้ากำลังโหลด แสดง Loading
     if (loading) {
         return (
-            <div className="flex min-h-screen">
+            <div className="flex min-h-screen ">
                 <Sidebar />
-                <div className="flex-1 bg-gray-50">
+                <div className="flex-1 bg-[#F3FAFF]">
                     <TopNav />
-                    <main className="p-6">
+                    <main className="pt-24 px-[32px]">
                         <div className="flex items-center justify-center h-64">
                             <div className="text-center">
                                 <div className="text-lg text-gray-600">Loading...</div>
@@ -218,9 +122,9 @@ export default function TechnicianPage() {
     return (
         <div className="flex">
             <Sidebar />
-            <div className="flex-1 bg-[F3FAFF]">
+            <div className="flex-1 bg-[#F3FAFF]">
                 <TopNav />
-                <main className="flex flex-col p-[32px] gap-[32px]">
+                <main className="flex flex-col pt-24 pb-[32px] pl-[288px] pr-[32px] gap-[32px]">
 
                     <p className='font-bold text-[32px] text-[#002446]'>Request & Checking</p>
 
@@ -236,11 +140,12 @@ export default function TechnicianPage() {
                                 <div className="relative">
                                     <input
                                         type="text"
-                                        placeholder="Search id / vehicle owner or plate..."
+                                        placeholder="Search vehicle owner or plate..."
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)}
                                         className="w-[533px] px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     />
+                                    
                                     {/* Search Icon */}
                                     <svg
                                         className="absolute left-3 top-2.5 w-5 h-5 text-gray-400"
@@ -250,12 +155,16 @@ export default function TechnicianPage() {
                                     >
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                     </svg>
+
+                                    <button>
+                                        <span className="sr-only">Search</span>
+                                    </button>
                                 </div>
 
-                                {/* Filter Button */}
+                                {/* Filter Button
                                 <button className="flex px-4 py-2 bg-[#D5ECF8] text-[#002446] rounded-lg hover:bg-blue-100 transition-colors font-medium">
                                     Filter by Status
-                                </button>
+                                </button> */}
                         </div>
 
                         {/* Table */}
@@ -283,29 +192,38 @@ export default function TechnicianPage() {
 
                                 {/* Table Body */}
                                 <tbody className="bg-white divide-y divide-gray-200">
-                                    {currentItems.map((request) => (
-                                        <tr key={request.id} className="hover:bg-gray-50 transition-colors">
+                                    {filteredRequests.length === 0 && (
+                                        <tr>
+                                            <td colSpan={5} className="px-6 py-8 text-center text-sm text-gray-500">
+                                                ไม่พบข้อมูลที่ตรงกับ &quot;{searchTerm}&quot;
+                                            </td>
+                                        </tr>
+                                    )}
+                                    {filteredRequests.map((request) => (
+                                        <tr key={request.requestId} className="hover:bg-gray-50 transition-colors">
 
                                             {/* คอลัมน์ 1: Vehicle Plate / Service ID */}
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <div className="text-md text-[#002448] font-semibold text-gray-900">
-                                                    {request.vehiclePlate}
+                                                    {request.plateNumber}
                                                 </div>
                                                 <div className="text-xs text-gray-500">
-                                                    {request.serviceId}
+                                                    {request.requestId}
                                                 </div>
                                             </td>
 
                                             {/* คอลัมน์ 2: Customer */}
                                             <td className="px-6 py-4">
-                                                <div className="text-sm font-medium text-gray-900">
+                                                 <div className="text-md text-[#002448] font-semibold text-gray-900">
                                                     {request.customerName}
                                                 </div>
-                                                <div className="text-xs text-gray-500">
-                                                    {request.vehicleModel}
+                                                
+                                                <div className="text-sm font-medium text-gray-900">
+                                                    {request.model} {request.year}
                                                 </div>
+
                                                 <div className="text-xs text-gray-500">
-                                                    ({request.vehicleColor})
+                                                    {request.color}
                                                 </div>
                                             </td>
 
@@ -319,14 +237,14 @@ export default function TechnicianPage() {
                                             {/* คอลัมน์ 4: Status */}
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <span className="px-4 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-[#D5ECF8] text-[#002448]">
-                                                    {request.status}
+                                                    INTAKE {/*request.requestStatus*/}
                                                 </span>
                                             </td>
 
                                             {/* คอลัมน์ 5: Action */}
                                             <td className="px-6 py-4 whitespace-nowrap text-right">
                                                 <button
-                                                    onClick={() => handleReceive(request.id)}
+                                                    onClick={() => handleReceive(request.requestId)}
                                                     className="px-9 py-2 bg-[#002446] text-white text-sm font-medium rounded-lg hover:bg-blue-800 transition-colors"
                                                 >
                                                     Receive
@@ -343,9 +261,9 @@ export default function TechnicianPage() {
                         <div className="px-6 py-4 bg-white flex items-center justify-between">
                             {/* ซ้าย: จำนวนข้อมูล */}
                             <div className="text-sm text-gray-700">
-                                Show <span className="font-medium">{indexOfFirstItem + 1}</span> to{' '}
-                                <span className="font-medium">{Math.min(indexOfLastItem, requests.length)}</span> of{' '}
-                                <span className="font-medium">{requests.length}</span> services
+                                Show <span className="font-medium">{indexOfFirstItem}</span> to{' '}
+                                <span className="font-medium">{indexOfLastItem}</span> of{' '}
+                                <span className="font-medium">{totalItems}</span> services
                             </div>
 
                             {/* ขวา: Pagination Buttons */}
