@@ -22,7 +22,7 @@ export default function Home() {
       })
       .catch(() => {
         logoutClient();
-        router.push('/login');
+        router.push('/Login');
       });
   }, [router]);
   return (
