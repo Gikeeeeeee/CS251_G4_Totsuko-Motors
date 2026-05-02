@@ -87,8 +87,12 @@ export default function ClerkDashboard() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
+      case 'PENDING':
+        return <span className="px-3 py-1 bg-[#FEF9C3] text-[#854D0E] rounded-full text-[10px] font-bold tracking-wider">PENDING</span>;
       case 'REPAIRING':
         return <span className="px-3 py-1 bg-[#E0F2FE] text-[#0284C7] rounded-full text-[10px] font-bold tracking-wider">REPAIRING</span>;
+      case 'IN PROGRESS':
+        return <span className="px-3 py-1 bg-[#EDE9FE] text-[#6D28D9] rounded-full text-[10px] font-bold tracking-wider">IN PROGRESS</span>;
       case 'RECIEVED':
         return <span className="px-3 py-1 bg-gray-200 text-gray-700 rounded-full text-[10px] font-bold tracking-wider">RECIEVED</span>;
       case 'CANCELED':
@@ -96,17 +100,19 @@ export default function ClerkDashboard() {
       case 'COMPLETED':
         return <span className="px-3 py-1 bg-[#DCFCE7] text-[#15803D] rounded-full text-[10px] font-bold tracking-wider">COMPLETED</span>;
       default:
-        return null;
+        return <span className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-[10px] font-bold tracking-wider">{status}</span>;
     }
   }
 
   const getStatusColorClass = (status: string) => {
     switch (status) {
-      case 'REPAIRING': return 'bg-[#3B82F6]'; // Blue
-      case 'RECIEVED': return 'bg-[#CBD5E1]'; // Light Gray
-      case 'CANCELED': return 'bg-[#FCA5A5]'; // Light Red
-      case 'COMPLETED': return 'bg-[#86EFAC]'; // Light Green
-      default: return 'bg-gray-500';
+      case 'PENDING': return 'bg-[#FDE047]';
+      case 'REPAIRING': return 'bg-[#3B82F6]';
+      case 'IN PROGRESS': return 'bg-[#8B5CF6]';
+      case 'RECIEVED': return 'bg-[#CBD5E1]';
+      case 'CANCELED': return 'bg-[#FCA5A5]';
+      case 'COMPLETED': return 'bg-[#86EFAC]';
+      default: return 'bg-gray-400';
     }
   }
 
@@ -220,7 +226,9 @@ export default function ClerkDashboard() {
                 onChange={(e) => setStatusFilter(e.target.value)}
               >
                 <option value="ALL">All Status</option>
+                <option value="PENDING">Pending</option>
                 <option value="REPAIRING">Repairing</option>
+                <option value="IN PROGRESS">In Progress</option>
                 <option value="RECIEVED">Received</option>
                 <option value="CANCELED">Canceled</option>
                 <option value="COMPLETED">Completed</option>
