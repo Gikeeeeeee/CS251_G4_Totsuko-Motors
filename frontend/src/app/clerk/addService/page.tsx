@@ -1,12 +1,24 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import SidebarClerk from '@/components/SidebarClerk'
 import TopNavClerk from '@/components/TopNavClerk'
 import { getAvailableTechnicians, createService, type AvailableTechnician } from '@/services/addServiceApi'
 import styles from './page.module.css'
 
 export default function AddServicePage() {
+  const router = useRouter()
+
+  useEffect(() => {
+    const role = localStorage.getItem('role');
+    const validRoles = ['Admin', 'admin', 'clerk', 'Clerk'];
+    if (!role || !validRoles.includes(role)) {
+      alert('Access Denied: Only Admin and Clerk are allowed.');
+      router.push('/Login');
+    }
+  }, [router]);
+
   const [formData, setFormData] = useState({
     customerName: '',
     phoneNumber: '',

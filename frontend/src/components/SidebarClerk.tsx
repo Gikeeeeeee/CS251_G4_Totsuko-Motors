@@ -1,10 +1,26 @@
 'use client'
 
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import styles from './SidebarClerk.module.css'
+import { authService } from '@/services/auth.service'
 
 export default function SidebarClerk() {
   const pathname = usePathname()
+  const router = useRouter()
+
+  const handleLogout = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    try {
+      await authService.logout()
+    } catch (error) {
+      console.error('Logout error:', error)
+    }
+    localStorage.removeItem('user')
+    localStorage.removeItem('role')
+    localStorage.removeItem('employee_id')
+    router.push('/Login')
+  }
+
   return (
     <nav className={styles.sidebar}>
       <div className={styles.logoSection}>
@@ -53,7 +69,7 @@ export default function SidebarClerk() {
       </div>
 
       <div className={styles.logoutSection}>
-        <a href="#" className={styles.logoutLink}>
+        <a href="#" className={styles.logoutLink} onClick={handleLogout}>
           <span className={styles.icon}><svg width="21" height="21" viewBox="0 0 21 21" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M7.25 19.25H3.25C2.71957 19.25 2.21086 19.0393 1.83579 18.6642C1.46071 18.2891 1.25 17.7804 1.25 17.25V3.25C1.25 2.71957 1.46071 2.21086 1.83579 1.83579C2.21086 1.46071 2.71957 1.25 3.25 1.25H7.25M14.25 15.25L19.25 10.25M19.25 10.25L14.25 5.25M19.25 10.25H7.25" stroke="#64748B" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>

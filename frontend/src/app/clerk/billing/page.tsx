@@ -5,8 +5,10 @@ import SidebarClerk from '@/components/SidebarClerk';
 import TopNavClerk from '@/components/TopNavClerk';
 import styles from './page.module.css';
 import apiClient from '@/services/apiClient';
+import { useRouter } from 'next/navigation';
 
 export default function ClerkBilling() {
+  const router = useRouter();
   const [billingList, setBillingList] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -16,6 +18,15 @@ export default function ClerkBilling() {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
   };
+
+  useEffect(() => {
+    const role = localStorage.getItem('role');
+    const validRoles = ['Admin', 'admin', 'clerk', 'Clerk'];
+    if (!role || !validRoles.includes(role)) {
+      alert('Access Denied: Only Admin and Clerk are allowed.');
+      router.push('/Login');
+    }
+  }, [router]);
 
   useEffect(() => {
     const fetchBillingData = async () => {

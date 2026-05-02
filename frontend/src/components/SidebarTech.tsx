@@ -1,7 +1,8 @@
 'use client'
 
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import styles from './SidebarTech.module.css'
+import { authService } from '@/services/auth.service'
 
 const navItems = [
   {
@@ -33,6 +34,19 @@ const navItems = [
 
 export default function SidebarTech() {
   const pathname = usePathname()
+  const router = useRouter()
+
+  const handleLogout = async () => {
+    try {
+      await authService.logout()
+    } catch (error) {
+      console.error('Logout error:', error)
+    }
+    localStorage.removeItem('user')
+    localStorage.removeItem('role')
+    localStorage.removeItem('employee_id')
+    router.push('/Login')
+  }
 
   return (
     <nav className={styles.sidebar}>
@@ -58,7 +72,7 @@ export default function SidebarTech() {
       </div>
 
       <div className={styles.logoutSection}>
-        <button className={styles.logoutLink}>
+        <button className={styles.logoutLink} onClick={handleLogout}>
           <span className={styles.icon}>
             <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
               <path d="M7 3H3C2.45 3 2 3.45 2 4V14C2 14.55 2.45 15 3 15H7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>

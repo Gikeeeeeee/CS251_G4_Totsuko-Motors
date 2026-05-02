@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect, Suspense } from 'react';
 import Image from 'next/image';
 import CarImage from '@/public/car.png';
 import apiClient from '@/services/apiClient';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 
 type Technician = {
   employeeId: string;
@@ -44,6 +44,17 @@ type ServiceRequestData = {
 };
 
 export default function OperatingPage() {
+  const router = useRouter();
+
+  useEffect(() => {
+    const role = localStorage.getItem('role');
+    const validRoles = ['Admin', 'admin', 'technician', 'Technician'];
+    if (!role || !validRoles.includes(role)) {
+      alert('Access Denied: Only Admin and Technician are allowed.');
+      router.push('/Login');
+    }
+  }, [router]);
+
   return (
     <Suspense fallback={<div className="rounded-lg flex items-center justify-center py-10 border border-slate-200"><span className="text-sm text-slate-400">Loading...</span></div>}>
       <OperatingPageContent />
