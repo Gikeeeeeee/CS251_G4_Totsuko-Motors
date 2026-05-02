@@ -1,12 +1,12 @@
 export const getRedirectPathByRole = (role: string): string => {
   switch (role) {
     case 'technician':
-      return '/technician';
+      return '/technician/request-list';
     case 'clerk':
-      return '/clerk';
+      return '/clerk/dashboard';
     case 'purchasingStaff':
-      return '/purchasing';
+      return '/PurchasingStaff/purchasing-part';
     default:
-      return '/login';
+      return '/Login';
   }
 };

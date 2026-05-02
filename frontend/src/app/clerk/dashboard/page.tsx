@@ -5,6 +5,7 @@ import SidebarClerk from '@/components/SidebarClerk'
 import TopNavClerk from '@/components/TopNavClerk'
 import Link from 'next/link'
 import apiClient from '@/services/apiClient';
+import { useRouter } from 'next/navigation';
 
 export default function ClerkDashboard() {
 
@@ -13,6 +14,17 @@ export default function ClerkDashboard() {
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+
+  const router = useRouter();
+
+  useEffect(() => {
+    const role = localStorage.getItem('role');
+    const validRoles = ['Admin', 'admin', 'clerk', 'Clerk'];
+    if (!role || !validRoles.includes(role)) {
+      alert('Access Denied: Only Admin and Clerk are allowed.');
+      router.push('/Login');
+    }
+  }, [router]);
 
   useEffect(() => {
     const fetchServices = async () => {

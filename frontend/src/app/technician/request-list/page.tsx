@@ -29,6 +29,15 @@ export default function TechnicianPage() {
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
 
+    useEffect(() => {
+        const role = localStorage.getItem('role');
+        const validRoles = ['Admin', 'admin', 'technician', 'Technician'];
+        if (!role || !validRoles.includes(role)) {
+            alert('Access Denied: Only Admin and Technician are allowed.');
+            router.push('/Login');
+        }
+    }, [router]);
+
     // โหลดข้อมูลเมื่อหน้าเปิดครั้งแรก
     useEffect(() => {
         const loadData = async () => {

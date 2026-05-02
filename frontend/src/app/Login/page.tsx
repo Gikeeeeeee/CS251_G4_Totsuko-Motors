@@ -19,6 +19,11 @@ export default function LoginPage() {
     authService.verify()
       .then((data) => {
         if (data.success) {
+          // กันเหนียว กรณี verify ผ่าน ให้เซ็ตลง Local Storage ด้วย
+          localStorage.setItem('user', JSON.stringify(data.user));
+          localStorage.setItem('role', data.user.role);
+          localStorage.setItem('employee_id', data.user.employeeId);
+
           setUser(data.user);
           // 2. เรียกใช้ฟังก์ชันจาก utils แล้วสั่ง router.push เลย
           router.push(getRedirectPathByRole(data.user.role));
@@ -36,6 +41,11 @@ export default function LoginPage() {
       const data = await authService.login(username, password);
 
       if (data.success) {
+        // 🛠️ จุดสำคัญ: บันทึกข้อมูลลง Local Storage เพื่อให้ Auth Guard และหน้าอื่นๆ เรียกใช้ได้
+        localStorage.setItem('user', JSON.stringify(data.user));
+        localStorage.setItem('role', data.user.role);
+        localStorage.setItem('employee_id', data.user.employeeId);
+
         setUser(data.user);
         
         // 3. เรียกใช้ฟังก์ชันจาก utils เช่นเดียวกัน
