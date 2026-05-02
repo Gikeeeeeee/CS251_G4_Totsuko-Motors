@@ -1,5 +1,7 @@
 import { db } from '../../db';
 import { customer, serviceRequest, vehicle } from '../../db/schema';
+import { desc, eq } from 'drizzle-orm';
+
 
 export type CreateServiceRecord = {
   customerId: string;
@@ -67,4 +69,28 @@ export async function createServiceRecord(data: CreateServiceRecord) {
       serviceRequest: createdServiceRequest,
     };
   });
+}
+
+
+
+// ฟังก์ชันดึงข้อมูลสำหรับหน้า Technician
+export async function findTechnicianRequests() {
+  const data = await db
+    .select({
+      requestId: serviceRequest.requestId,
+      requestStatus: serviceRequest.requestStatus,
+      problemDescription: serviceRequest.problemDescription,
+      checkingDate: serviceRequest.checkingDate,
+      customerName: customer.name,
+      plateNumber: vehicle.plateNumber,
+      vehicleModel: vehicle.model,
+      vehicleColor: vehicle.color,
+    })
+    .from(serviceRequest)
+    .leftJoin(customer, eq(serviceRequest.customerId, customer.customerId))
+    .leftJoin(vehicle, eq(serviceRequest.vehicleId, vehicle.vehicleId))
+    // เรียงลำดับจากงานที่เข้ามาล่าสุดก่อน
+    .orderBy(desc(serviceRequest.checkingDate));
+
+  return data;
 }

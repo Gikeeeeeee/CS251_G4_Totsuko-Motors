@@ -6,6 +6,8 @@ import {
   getTechnicianById,
 } from '../../services/technician/technician.service';
 
+import {findTechnicianRequests} from '../../repo/service/service-request.repo';
+
 export const handleGetAvailableTechnicians = async (
   req: AuthRequest,
   res: Response,
@@ -65,6 +67,15 @@ export const handleGetTechnicianById = async (
     });
   } catch (error: any) {
     error.statusCode = 404;
+    next(error);
+  }
+};
+
+export const getTechnicianRequests = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const data = await findTechnicianRequests();
+    res.json({ success: true, data: data });
+  } catch (error) {
     next(error);
   }
 };

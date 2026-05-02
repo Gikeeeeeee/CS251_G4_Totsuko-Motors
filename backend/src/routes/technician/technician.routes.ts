@@ -3,7 +3,9 @@ import {
   handleGetAvailableTechnicians,
   handleGetAllTechnicians,
   handleGetTechnicianById,
+  getTechnicianRequests
 } from '../../controllers/technician/technician.controller';
+
 import { authMiddleware } from '../../middlewares/auth.middleware';
 
 const router = Router();
@@ -14,7 +16,11 @@ router.get('/available'/*authMiddleware */,handleGetAvailableTechnicians);
 // GET /api/technicians - ดึงช่างทั้งหมด
 router.get('/', authMiddleware, handleGetAllTechnicians);
 
+// GET /api/technicians/requests - ดึง service requests สำหรับหน้า Technician
+router.get('/requests', getTechnicianRequests);
+
 // GET /api/technicians/:id - ดึงช่างตาม ID
 router.get('/:id', authMiddleware, handleGetTechnicianById);
+
 
 export default router;
