@@ -393,7 +393,6 @@
   cursor: pointer;
   transition: background-color 0.2s;
 }
-
 .pageBtn:hover {
   background-color: #f3f4f6;
 }

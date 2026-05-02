@@ -1,143 +1,85 @@
--- สร้างตารางเรียงตามลำดับความสัมพันธ์ (Foreign Key)
--- 1. บัญชีผู้ใช้และพนักงาน
-CREATE TABLE IF NOT EXISTS "UserAccount" (
-    "user_id" VARCHAR(10) PRIMARY KEY,
-    "name" VARCHAR(100) NOT NULL,
-    "email" VARCHAR(100) UNIQUE NOT NULL,
-    "username" VARCHAR(50) UNIQUE NOT NULL,
-    "password" VARCHAR(255) NOT NULL,
-    "role" VARCHAR(20) NOT NULL,
-    "status" VARCHAR(20) DEFAULT 'Active'
-);
+BEGIN;
 
-CREATE TABLE IF NOT EXISTS "Employee" (
-    "employee_id" VARCHAR(10) PRIMARY KEY,
-    "name" VARCHAR(100) NOT NULL,
-    "phone" VARCHAR(20),
-    "hire_date" DATE,
-    "user_id" VARCHAR(10) UNIQUE REFERENCES "UserAccount"("user_id")
-);
+-- 1. สร้าง UserAccount สำหรับพนักงานทั้งหมด (ช่าง 5 คน + เสมียน 1 คน)
+-- userId มี length=10 จึงตั้งชื่อให้พอดี
+INSERT INTO "UserAccount" (user_id, name, email, username, password, role, status) VALUES
+('U-67096167', 'พีรภัทร เอกดิษฐ์', 'tech1@shop.com', 'tech1', 'hashed_pw', 'Technician', 'Active'),
+('U-67012345', 'ธีธัช ปูอัด', 'tech2@shop.com', 'tech2', 'hashed_pw', 'Technician', 'Active'),
+('U-67089012', 'บริวัฒน์ สงนุ้ย', 'tech3@shop.com', 'tech3', 'hashed_pw', 'Technician', 'Active'),
+('U-67056789', 'ธัชกฤต สตารัตน์', 'tech4@shop.com', 'tech4', 'hashed_pw', 'Technician', 'Active'),
+('U-67023456', 'ภาณุพงศ์ สุขติเกษม', 'tech5@shop.com', 'tech5', 'hashed_pw', 'Technician', 'Active'),
+('U-CLERK001', 'สมหญิง รับเรื่อง', 'clerk@shop.com', 'clerk1', 'hashed_pw', 'Clerk', 'Active');
 
--- ตารางย่อยพนักงาน
-CREATE TABLE IF NOT EXISTS "Clerk" ("employee_id" VARCHAR(10) PRIMARY KEY REFERENCES "Employee"("employee_id"));
-CREATE TABLE IF NOT EXISTS "PurchasingStaff" ("employee_id" VARCHAR(10) PRIMARY KEY REFERENCES "Employee"("employee_id"));
-CREATE TABLE IF NOT EXISTS "Technician" (
-    "employee_id" VARCHAR(10) PRIMARY KEY REFERENCES "Employee"("employee_id"),
-    "specialization" VARCHAR(100),
-    "is_available" BOOLEAN DEFAULT TRUE
-);
+-- 2. สร้าง Employee โดยอ้างอิง user_id (employee_id ของช่างใช้ตามที่คุณระบุ)
+INSERT INTO "Employee" (employee_id, name, phone, hire_date, user_id) VALUES
+('6709616764', 'พีรภัทร เอกดิษฐ์', '0811111111', '2024-01-01', 'U-67096167'),
+('6701234567', 'ธีธัช ปูอัด', '0822222222', '2024-01-01', 'U-67012345'),
+('6708901234', 'บริวัฒน์ สงนุ้ย', '0833333333', '2024-01-01', 'U-67089012'),
+('6705678901', 'ธัชกฤต สตารัตน์', '0844444444', '2024-01-01', 'U-67056789'),
+('6702345678', 'ภาณุพงศ์ สุขติเกษม', '0855555555', '2024-01-01', 'U-67023456'),
+('C-001', 'สมหญิง รับเรื่อง', '0899999999', '2024-01-01', 'U-CLERK001');
 
--- 2. ลูกค้าและรถยนต์
-CREATE TABLE IF NOT EXISTS "Customer" (
-    "customer_id" VARCHAR(10) PRIMARY KEY,
-    "name" VARCHAR(100) NOT NULL,
-    "phone" VARCHAR(20),
-    "address" TEXT,
-    "email" VARCHAR(100)
-);
+-- 3. แยกประเภทพนักงานลงตาราง Clerk และ Technician
+INSERT INTO "Clerk" (employee_id) VALUES ('C-001');
 
-CREATE TABLE IF NOT EXISTS "Vehicle" (
-    "vehicle_id" VARCHAR(10) PRIMARY KEY,
-    "plate_number" VARCHAR(20) NOT NULL,
-    "vehicle_type" VARCHAR(30),
-    "color" VARCHAR(30),
-    "brand" VARCHAR(50),
-    "model" VARCHAR(50),
-    "year" INTEGER,
-    "customer_id" VARCHAR(10) REFERENCES "Customer"("customer_id")
-);
+INSERT INTO "Technician" (employee_id, specialization, is_available) VALUES
+('6709616764', 'ช่างซ่อมเครื่องยนต์', true),
+('6701234567', 'ช่างไฟฟ้ารถยนต์', true),
+('6708901234', 'ช่างระบบเบรกและช่วงล่าง', true),
+('6705678901', 'ช่างเคาะพ่นสี', true),
+('6702345678', 'ช่างระบบเกียร์', true);
 
--- 3. งานซ่อมและนัดหมาย
-CREATE TABLE IF NOT EXISTS "ServiceRequest" (
-    "request_id" VARCHAR(10) PRIMARY KEY,
-    "checking_date" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    "odometer" INT,
-    "problem_description" TEXT,
-    "request_status" VARCHAR(30) DEFAULT 'Pending',
-    "customer_id" VARCHAR(10) REFERENCES "Customer"("customer_id"),
-    "clerk_id" VARCHAR(10) REFERENCES "Employee"("employee_id"),
-    "technician_id" VARCHAR(10) REFERENCES "Employee"("employee_id"),
-    "vehicle_id" VARCHAR(10) REFERENCES "Vehicle"("vehicle_id")
-);
+-- 4. สร้างข้อมูลลูกค้า (Customer)
+INSERT INTO "Customer" (customer_id, name, phone, address, email) VALUES
+('CUST-001', 'สมชาย ใจดี', '0801234567', '123 ถ.สุขุมวิท กทม.', 'somchai@example.com');
 
-CREATE TABLE IF NOT EXISTS "Appointment" (
-    "appointment_id" VARCHAR(10) PRIMARY KEY,
-    "appointment_date" TIMESTAMP,
-    "appoint_status" VARCHAR(20),
-    "notes" TEXT,
-    "created_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    "request_id" VARCHAR(10) REFERENCES "ServiceRequest"("request_id")
-);
+-- 5. สร้างข้อมูลรถยนต์ (Vehicle) ผูกกับลูกค้า
+INSERT INTO "Vehicle" (vehicle_id, vehicle_type, color, year, model, brand, plate_number, customer_id) VALUES
+('V-001', 'Sedan', 'White', 2020, 'Civic', 'Honda', 'กข 1234', 'CUST-001');
 
-CREATE TABLE IF NOT EXISTS "ServiceJob" (
-    "service_id" VARCHAR(10) PRIMARY KEY,
-    "service_type" VARCHAR(50),
-    "service_details" TEXT,
-    "start_time" TIMESTAMP,
-    "end_time" TIMESTAMP,
-    "service_status" VARCHAR(30),
-    "labor_cost" DECIMAL(10,2),
-    "request_id" VARCHAR(10) REFERENCES "ServiceRequest"("request_id")
-);
+-- 6. สร้างใบแจ้งซ่อม (Service Request) รถ 1 คัน แจ้ง 1 ครั้ง
+-- ให้ 'พีรภัทร' (ช่างเครื่อง) เป็นหัวหน้างานหลักใน request นี้
+INSERT INTO "ServiceRequest" (request_id, checking_date, request_status, problem_description, odometer, customer_id, vehicle_id, clerk_id, technician_id) VALUES
+('REQ-001', CURRENT_TIMESTAMP, 'In Progress', 'เครื่องยนต์มีเสียงดังผิดปกติและแอร์ไม่เย็น', 55000, 'CUST-001', 'V-001', 'C-001', '6709616764');
 
--- 4. อะไหล่และการสั่งซื้อ
-CREATE TABLE IF NOT EXISTS "Part" (
-    "part_id" VARCHAR(10) PRIMARY KEY,
-    "part_name" VARCHAR(100) NOT NULL,
-    "stock_quantity" INT DEFAULT 0,
-    "price" DECIMAL(10,2),
-    "reorder_point" INT,
-    "reserved_qty" INT DEFAULT 0
-);
+-- 7. สร้างใบนัดหมาย (Appointment) สำหรับ Request นี้
+INSERT INTO "Appointment" (appointment_id, appointment_date, appoint_status, notes, request_id) VALUES
+('APP-001', '2026-05-02 10:00:00', 'Confirmed', 'ลูกค้านำรถเข้ามาเช็คตามนัดหมาย', 'REQ-001');
 
-CREATE TABLE IF NOT EXISTS "Supplier" (
-    "supplier_id" VARCHAR(10) PRIMARY KEY,
-    "supplier_name" VARCHAR(100) NOT NULL,
-    "phone" VARCHAR(20),
-    "email" VARCHAR(100),
-    "address" TEXT
-);
+-- 8. สร้างรายการงานซ่อมย่อย (Service Job)
+INSERT INTO "ServiceJob" (service_id, service_type, service_details, start_time, end_time, service_status, labor_cost, request_id) VALUES
+('JOB-001', 'Engine Repair', 'ตรวจสอบและเปลี่ยนสายพานหน้าเครื่อง', CURRENT_TIMESTAMP, NULL, 'In Progress', 500.00, 'REQ-001');
 
-CREATE TABLE IF NOT EXISTS "PurchaseOrder" (
-    "po_id" VARCHAR(20) PRIMARY KEY,
-    "order_status" VARCHAR(30),
-    "order_date" DATE,
-    "purchasing_staff_id" VARCHAR(10) REFERENCES "PurchasingStaff"("employee_id"),
-    "supplier_id" VARCHAR(10) REFERENCES "Supplier"("supplier_id"),
-    "order_quantity" INT
-);
+-- 9. มอบหมายช่างให้กับงานซ่อม (AssignTo) 
+-- ให้ พีรภัทร (เครื่องยนต์) และ ธีธัช (ไฟฟ้า) ช่วยกันซ่อม
+INSERT INTO "AssignTo" (service_id, technician_id) VALUES
+('JOB-001', '6709616764'),
+('JOB-001', '6701234567');
 
-CREATE TABLE IF NOT EXISTS "PurchaseOrderPart" (
-    "po_id" VARCHAR(20) REFERENCES "PurchaseOrder"("po_id"),
-    "part_id" VARCHAR(10) REFERENCES "Part"("part_id"),
-    "buying_price" DECIMAL(10,2),
-    "quantity" INT,
-    PRIMARY KEY ("po_id", "part_id")
-);
+-- 10. สร้างข้อมูล Supplier ก่อน (Part อ้างอิง supplier_id)
+INSERT INTO "Supplier" (supplier_id, supplier_name, phone,email, address) VALUES
+('SUP-001', 'MotoParts Co., Ltd.', '0811111111', 'contact@moto parts.com', 'Maryland, USA'),
+('SUP-002', 'AutoSupplies Inc.', '0822222222', 'data@autosupplies.com', 'Portland, OR, USA');
 
-CREATE TABLE IF NOT EXISTS "UsePart" (
-    "service_id" VARCHAR(10) REFERENCES "ServiceJob"("service_id"),
-    "part_id" VARCHAR(10) REFERENCES "Part"("part_id"),
-    "quantity" INT,
-    PRIMARY KEY ("service_id", "part_id")
-);
+-- 11. สร้างข้อมูลอะไหล่ (Part) ในระบบ
+INSERT INTO "Part" (part_id, part_name, stock_quantity, price, reorder_point, reserved_qty, supplier_id) VALUES
+('P-001', 'สายพานหน้าเครื่อง Honda', 10, 850.00, 5, 1, 'SUP-001'),
+('P-002', 'น้ำยาแอร์ R134a', 20, 300.00, 10, 2, 'SUP-002');
 
-CREATE TABLE IF NOT EXISTS "AssignTo" (
-    "service_id" VARCHAR(10) REFERENCES "ServiceJob"("service_id"),
-    "technician_id" VARCHAR(10) REFERENCES "Technician"("employee_id"),
-    PRIMARY KEY ("service_id", "technician_id")
-);
-CREATE TABLE IF NOT EXISTS "Invoice" (
-    "invoice_id" VARCHAR(10) PRIMARY KEY,
-    "created_date" DATE DEFAULT CURRENT_DATE,
-    "payment_status" VARCHAR(30),
-    "total_amount" DECIMAL(10, 2),
-    "request_id" VARCHAR(10) UNIQUE REFERENCES "ServiceRequest"("request_id")
-);
+-- 12. เบิกอะไหล่มาใช้ในงานซ่อม (UsePart)
+INSERT INTO "UsePart" (service_id, part_id, quantity) VALUES
+('JOB-001', 'P-001', 1),
+('JOB-001', 'P-002', 2);
 
-CREATE TABLE IF NOT EXISTS "InvoiceDetail" (
-    "invoice_id" VARCHAR(10) REFERENCES "Invoice"("invoice_id"),
-    "details" TEXT NOT NULL,
-    "amount" DECIMAL(10, 2),
-    PRIMARY KEY ("invoice_id", "details")
-);
+-- 12. ออกใบแจ้งหนี้ (Invoice) รวมยอดคร่าวๆ (ค่าแรง 500 + ค่าอะไหล่ 1450 = 1950)
+INSERT INTO "Invoice" (invoice_id, created_date, payment_status, total_amount, request_id) VALUES
+('INV-001', CURRENT_DATE, 'Unpaid', 1950.00, 'REQ-001');
+
+-- 13. ใส่รายละเอียดในใบแจ้งหนี้ (InvoiceDetail)
+INSERT INTO "InvoiceDetail" (invoice_id, details, amount) VALUES
+('INV-001', 'ค่าแรงตรวจเช็คและซ่อมเครื่องยนต์', 500.00),
+('INV-001', 'ค่าสายพานหน้าเครื่อง Honda', 850.00),
+('INV-001', 'ค่าน้ำยาแอร์ R134a (2 หน่วย)', 600.00);
+
+
+COMMIT;

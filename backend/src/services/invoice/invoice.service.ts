@@ -1,14 +1,24 @@
 import { randomUUID } from 'crypto';
 import {
   createInvoiceRecord,
+  createInvoiceWithDetails,
   findInvoiceByRequestId,
+  findInvoiceDetailsByInvoiceId,
   findServiceRequestForInvoice,
+  findAllInvoices,
+  updateInvoicePaymentStatus,
 } from '../../repo/invoice/invoice.repo';
+
+export type InvoiceDetailItem = {
+  details: string;
+  amount: number | string;
+};
 
 export type CreateInvoiceBody = {
   request_id: string;
   payment_status?: string;
   total_amount?: number | string;
+  details?: InvoiceDetailItem[];
 };
 
 function generateInvoiceId() {
@@ -42,7 +52,12 @@ export async function getInvoiceByRequestId(requestId: string) {
     throw new Error(`Invoice for request_id "${requestId}" not found`);
   }
 
-  return invoice;
+  const details = await findInvoiceDetailsByInvoiceId(invoice.invoice_id);
+  return { ...invoice, details };
+}
+
+export async function getAllInvoices() {
+  return await findAllInvoices();
 }
 
 export async function createInvoice(body: CreateInvoiceBody) {
@@ -66,11 +81,55 @@ export async function createInvoice(body: CreateInvoiceBody) {
 
   const totalAmount = normalizeOptionalNumber(body.total_amount, 'total_amount');
   const paymentStatus = normalizeOptionalString(body.payment_status) ?? 'Unpaid';
+  const details = Array.isArray(body.details)
+    ? body.details.map((detail, index) => {
+        const text = normalizeOptionalString(detail.details);
+        if (!text) {
+          throw new Error(`details[${index}].details is required`);
+        }
+
+        const amount = normalizeOptionalNumber(detail.amount, `details[${index}].amount`);
+        if (amount === undefined) {
+          throw new Error(`details[${index}].amount is required`);
+        }
+
+        return { details: text, amount };
+      })
+    : [];
+
+  const computedTotal = totalAmount ?? (details.length > 0 ? details.reduce((sum, item) => sum + item.amount, 0) : undefined);
+  const invoiceId = generateInvoiceId();
+
+  if (details.length > 0) {
+    return createInvoiceWithDetails(
+      {
+        invoiceId,
+        requestId,
+        paymentStatus,
+        totalAmount: computedTotal,
+      },
+      details.map((detail) => ({
+        invoiceId,
+        details: detail.details,
+        amount: detail.amount,
+      })),
+    );
+  }
 
   return createInvoiceRecord({
-    invoiceId: generateInvoiceId(),
+    invoiceId,
     requestId,
     paymentStatus,
-    totalAmount,
+    totalAmount: computedTotal,
   });
+}
+
+export async function payInvoice(invoiceId: string) {
+  if (!invoiceId) throw new Error('invoice_id is required');
+  
+  const updated = await updateInvoicePaymentStatus(invoiceId, 'Paid');
+  if (!updated) {
+    throw new Error(`Invoice "${invoiceId}" not found`);
+  }
+  return updated;
 }

@@ -2,57 +2,68 @@
 
 import apiClient from '@/services/apiClient';
 import { useState, useEffect } from 'react';
-import Sidebar from '@/components/Sidebar';
-import TopNav from '@/components/TopNav';
+import apiClient from '@/services/apiClient';
+import { useRouter } from 'next/navigation';
 
-// Interface สำหรับกำหนดโครงสร้างข้อมูล
-// interface ServiceRequest {
-//     id: number;
-//     vehiclePlate: string;
-//     serviceId: string;
-//     customerName: string;
-//     vehicleModel: string;
-//     vehicleColor: string;
-//     problemDescription: string;
-//     status: 'INTAKE' | 'IN_PROGRESS' | 'COMPLETED';
-// }
-
+// Interface สำหรับกำหนดโครงสร้างข้อมูลที่มาจาก API
 interface ServiceRequest {
-    requestId: string;
-    plateNumber: string;
+    id: string; 
+    vehiclePlate: string;
+    serviceId: string;
     customerName: string;
-    requestStatus: string;
-    problemDescription: string | null;
-    checkingDate: string;
-    odometer: number | null;
-    clerkName: string;
-    model: string | null;   // เพิ่ม
-    color: string | null;   // เพิ่ม
-    year: number | null;    // เพิ่ม
+    vehicleModel: string;
+    vehicleColor: string;
+    problemDescription: string;
+    status: string; // 👈 เก็บสถานะจริงๆ ที่ส่งมาจาก Backend
 }
 
-
-
 export default function TechnicianPage() {
+    const router = useRouter(); 
+    
     const [requests, setRequests] = useState<ServiceRequest[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    
+    // Pagination
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
     const itemsPerPage = 10;
 
     useEffect(() => {
+        const role = localStorage.getItem('role');
+        const validRoles = ['Admin', 'admin', 'technician', 'Technician'];
+        if (!role || !validRoles.includes(role)) {
+            alert('Access Denied: Only Admin and Technician are allowed.');
+            router.push('/Login');
+        }
+    }, [router]);
+
+    // โหลดข้อมูลเมื่อหน้าเปิดครั้งแรก
+    useEffect(() => {
         const loadData = async () => {
             try {
-                const response = await apiClient.get('/service/technician/requests', {
-                    params: { page: currentPage, limit: itemsPerPage },
-                });
-                setRequests(response.data.data);
-                setTotalPages(response.data.meta.totalPages);
-                setTotalItems(response.data.meta.totalItems);
+                
+                const res = await apiClient.get('/technicians/requests'); 
+                const apiData = res.data?.data || res.data || [];
+
+                // แมปข้อมูลจาก API เข้าโครงสร้าง
+                const formattedData: ServiceRequest[] = apiData.map((item: any) => ({
+                    id: item.requestId,
+                    vehiclePlate: item.plateNumber || '-',
+                    serviceId: item.requestId,
+                    customerName: item.customerName || 'ไม่ระบุชื่อ',
+                    vehicleModel: item.vehicleModel || '-',
+                    vehicleColor: item.vehicleColor || '-',
+                    problemDescription: item.problemDescription || 'ไม่มีรายละเอียด',
+                    status: item.requestStatus || 'Unknown' // 👈 ใช้ค่าจริงจาก API 
+                }));
+
+                setRequests(formattedData);
             } catch (error) {
                 console.error('Error loading data:', error);
+                // Fallback เผื่อ API ร่วง
+                setRequests([]); 
             } finally {
                 setLoading(false);
             }
@@ -60,197 +71,148 @@ export default function TechnicianPage() {
         loadData();
     }, [currentPage]);
 
-    const indexOfFirstItem = (currentPage - 1) * itemsPerPage + 1;
-    const indexOfLastItem = Math.min(currentPage * itemsPerPage, totalItems);
+    // Filter ข้อมูล
+    const filteredRequests = requests.filter(req => 
+        req.vehiclePlate.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        req.serviceId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        req.customerName.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
-    // Function จัดการเมื่อคลิกปุ่ม Receive
-    const handleReceive = (requestId: string) => {
-        console.log('Receive request ID:', requestId);
-        alert(`รับงาน ID: ${requestId}`);
-        // TODO: เรียก API เพื่ออัพเดทสถานะ
-    };
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const currentItems = filteredRequests.slice(indexOfFirstItem, indexOfLastItem);
+    const totalPages = Math.ceil(filteredRequests.length / itemsPerPage);
 
-    // Function สำหรับเปลี่ยนหน้า
-    const handlePageChange = (pageNumber: number) => {
-        setCurrentPage(pageNumber);
-    };
-
-    // Function สำหรับไปหน้าถัดไป
-    const handleNextPage = () => {
-        if (currentPage < totalPages) {
-            setCurrentPage(currentPage + 1);
+    // 🚀 เมื่อกด Receive -> เปลี่ยนสถานะเป็น In Progress แล้วไปหน้า Operation
+    const handleReceive = async (requestId: string) => {
+        try {
+            await apiClient.patch(`/service/service-request/${requestId}/status`, { status: 'In Progress' });
+            setRequests(prev => prev.map(r => r.id === requestId ? { ...r, status: 'In Progress' } : r));
+        } catch (error) {
+            console.error('Failed to update status:', error);
         }
+        router.push(`/technician/operation?requestId=${requestId}`);
     };
 
-    // Function สำหรับไปหน้าก่อนหน้า
-    const handlePrevPage = () => {
-        if (currentPage > 1) {
-            setCurrentPage(currentPage - 1);
-        }
-    };
+    const handlePageChange = (pageNumber: number) => setCurrentPage(pageNumber);
+    const handleNextPage = () => { if (currentPage < totalPages) setCurrentPage(currentPage + 1); };
+    const handlePrevPage = () => { if (currentPage > 1) setCurrentPage(currentPage - 1); };
 
-    // ถ้ากำลังโหลด แสดง Loading
     if (loading) {
         return (
-            <div className="flex min-h-screen ">
-                <Sidebar />
-                <div className="flex-1 bg-[#F3FAFF]">
-                    <TopNav />
-                    <main className="pt-24 px-[32px]">
-                        <div className="flex items-center justify-center h-64">
-                            <div className="text-center">
-                                <div className="text-lg text-gray-600">Loading...</div>
-                            </div>
-                        </div>
-                    </main>
-                </div>
+            <div className="flex items-center justify-center h-64">
+                <div className="text-lg text-gray-600">Loading...</div>
             </div>
         );
     }
 
+    // กำหนดสีของ Badge ตามสถานะคร่าวๆ
+    const getStatusColor = (status: string) => {
+        const lowerStatus = status.toLowerCase();
+        if (lowerStatus.includes('pending') || lowerStatus.includes('intake')) return 'bg-[#D5ECF8] text-[#002448]';
+        if (lowerStatus.includes('progress')) return 'bg-yellow-100 text-yellow-800';
+        if (lowerStatus.includes('complete')) return 'bg-green-100 text-green-800';
+        return 'bg-gray-100 text-gray-800';
+    };
+
     return (
-        <div className="flex">
-            <Sidebar />
-            <div className="flex-1 bg-[#F3FAFF]">
-                <TopNav />
-                <main className="flex flex-col pt-24 pb-[32px] pl-[288px] pr-[32px] gap-[32px]">
+        <div className="flex flex-col gap-[32px]">
 
                     <p className='font-bold text-[32px] text-[#002446]'>Request & Checking</p>
 
                     <div className='flex flex-col rounded-xl overflow-hidden border border-gray-200'>
-                        {/* Header Section */}
                         <div className="flex items-center justify-between px-[32px] py-[24px] bg-[#ffffff]">
-                            {/* หัวข้อ */}
                             <h1 className="flex text-2xl font-bold text-[#002446]">
                                 Recent Service
                             </h1>
 
-                                {/* Search Box */}
-                                <div className="relative">
-                                    <input
-                                        type="text"
-                                        placeholder="Search id / vehicle owner or plate..."
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                        className="w-[533px] px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    />
-                                    {/* Search Icon */}
-                                    <svg
-                                        className="absolute left-3 top-2.5 w-5 h-5 text-gray-400"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        viewBox="0 0 24 24"
-                                    >
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                    </svg>
-                                </div>
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    placeholder="Search id / vehicle owner or plate..."
+                                    value={searchTerm}
+                                    onChange={(e) => {
+                                        setSearchTerm(e.target.value);
+                                        setCurrentPage(1); 
+                                    }}
+                                    className="w-[533px] px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                                <svg className="absolute left-3 top-2.5 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                            </div>
 
-                                {/* Filter Button */}
-                                <button className="flex px-4 py-2 bg-[#D5ECF8] text-[#002446] rounded-lg hover:bg-blue-100 transition-colors font-medium">
-                                    Filter by Status
-                                </button>
+                            <button className="flex px-4 py-2 bg-[#D5ECF8] text-[#002446] rounded-lg hover:bg-blue-100 transition-colors font-medium">
+                                Filter by Status
+                            </button>
                         </div>
 
-                        {/* Table */}
                         <div className="bg-white">
                             <table className="w-full">
-                                {/* Table Head */}
                                 <thead className="bg-[#E6F6FF]">
                                     <tr>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Vehicle Plate / Service ID
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Customer
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Problem Description
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Status
-                                        </th>
-                                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vehicle Plate / Service ID</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Problem Description</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"></th>
                                     </tr>
                                 </thead>
-
-                                {/* Table Body */}
                                 <tbody className="bg-white divide-y divide-gray-200">
-                                    {requests.map((request) => (
-                                        <tr key={request.requestId} className="hover:bg-gray-50 transition-colors">
-
-                                            {/* คอลัมน์ 1: Vehicle Plate / Service ID */}
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-md text-[#002448] font-semibold text-gray-900">
-                                                    {request.plateNumber}
-                                                </div>
-                                                <div className="text-xs text-gray-500">
-                                                    {request.requestId}
-                                                </div>
+                                    {currentItems.length > 0 ? (
+                                        currentItems.map((request) => (
+                                            <tr key={request.id} className="hover:bg-gray-50 transition-colors">
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <div className="text-md text-[#002448] font-semibold text-gray-900">{request.vehiclePlate}</div>
+                                                    <div className="text-xs text-gray-500">{request.serviceId}</div>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="text-sm font-medium text-gray-900">{request.customerName}</div>
+                                                    <div className="text-xs text-gray-500">{request.vehicleModel}</div>
+                                                    <div className="text-xs text-gray-500">({request.vehicleColor})</div>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="text-sm text-gray-700">{request.problemDescription}</div>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <span className={`px-4 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(request.status)}`}>
+                                                        {request.status.toUpperCase()}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-right">
+                                                    <button
+                                                        onClick={() => handleReceive(request.id)}
+                                                        className="px-9 py-2 bg-[#002446] text-white text-sm font-medium rounded-lg hover:bg-blue-800 transition-colors"
+                                                    >
+                                                        Receive
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    ) : (
+                                        <tr>
+                                            <td colSpan={5} className="px-6 py-10 text-center text-gray-500">
+                                                No service requests found.
                                             </td>
-
-                                            {/* คอลัมน์ 2: Customer */}
-                                            <td className="px-6 py-4">
-                                                 <div className="text-md text-[#002448] font-semibold text-gray-900">
-                                                    {request.customerName}
-                                                </div>
-                                                
-                                                <div className="text-sm font-medium text-gray-900">
-                                                    {request.model} {request.year}
-                                                </div>
-
-                                                <div className="text-xs text-gray-500">
-                                                    {request.color}
-                                                </div>
-                                            </td>
-
-                                            {/* คอลัมน์ 3: Problem Description */}
-                                            <td className="px-6 py-4">
-                                                <div className="text-sm text-gray-700">
-                                                    {request.problemDescription}
-                                                </div>
-                                            </td>
-
-                                            {/* คอลัมน์ 4: Status */}
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <span className="px-4 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-[#D5ECF8] text-[#002448]">
-                                                    INTAKE {/*request.requestStatus*/}
-                                                </span>
-                                            </td>
-
-                                            {/* คอลัมน์ 5: Action */}
-                                            <td className="px-6 py-4 whitespace-nowrap text-right">
-                                                <button
-                                                    onClick={() => handleReceive(request.requestId)}
-                                                    className="px-9 py-2 bg-[#002446] text-white text-sm font-medium rounded-lg hover:bg-blue-800 transition-colors"
-                                                >
-                                                    Receive
-                                                </button>
-                                            </td>
-
                                         </tr>
-                                    ))}
+                                    )}
                                 </tbody>
                             </table>
                         </div>
 
-                        {/* Footer - Pagination */}
-                        <div className="px-6 py-4 bg-white flex items-center justify-between">
-                            {/* ซ้าย: จำนวนข้อมูล */}
+                        <div className="px-6 py-4 bg-white flex items-center justify-between border-t border-gray-200">
                             <div className="text-sm text-gray-700">
-                                Show <span className="font-medium">{indexOfFirstItem}</span> to{' '}
-                                <span className="font-medium">{indexOfLastItem}</span> of{' '}
-                                <span className="font-medium">{totalItems}</span> services
+                                Show <span className="font-medium">{filteredRequests.length > 0 ? indexOfFirstItem + 1 : 0}</span> to{' '}
+                                <span className="font-medium">{Math.min(indexOfLastItem, filteredRequests.length)}</span> of{' '}
+                                <span className="font-medium">{filteredRequests.length}</span> services
                             </div>
 
-                            {/* ขวา: Pagination Buttons */}
                             <div className="flex gap-2 items-center">
-                                {/* ปุ่มก่อนหน้า */}
                                 <button
                                     onClick={handlePrevPage}
-                                    disabled={currentPage === 1}
+                                    disabled={currentPage === 1 || filteredRequests.length === 0}
                                     className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
-                                        currentPage === 1
+                                        currentPage === 1 || filteredRequests.length === 0
                                             ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                                             : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
                                     }`}
@@ -258,8 +220,7 @@ export default function TechnicianPage() {
                                     ←
                                 </button>
 
-                                {/* ปุ่มเลขหน้า */}
-                                {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNumber) => (
+                                {Array.from({ length: totalPages || 1 }, (_, i) => i + 1).map((pageNumber) => (
                                     <button
                                         key={pageNumber}
                                         onClick={() => handlePageChange(pageNumber)}
@@ -273,12 +234,11 @@ export default function TechnicianPage() {
                                     </button>
                                 ))}
 
-                                {/* ปุ่มถัดไป */}
                                 <button
                                     onClick={handleNextPage}
-                                    disabled={currentPage === totalPages}
+                                    disabled={currentPage === totalPages || filteredRequests.length === 0}
                                     className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
-                                        currentPage === totalPages
+                                        currentPage === totalPages || filteredRequests.length === 0
                                             ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                                             : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
                                     }`}
@@ -289,8 +249,6 @@ export default function TechnicianPage() {
                         </div>
                     </div>
 
-                </main>
-            </div>
         </div>
     );
 }

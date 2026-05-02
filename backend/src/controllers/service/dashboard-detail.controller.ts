@@ -1,5 +1,16 @@
 import { Request, Response } from 'express';
-import { getServiceList } from '../../services/service/dashboard-detail.service';
+import { getServiceList, getServiceRequestById } from '../../services/service/dashboard-detail.service';
+
+export async function getServiceRequestByIdController(req: Request, res: Response) {
+  try {
+    const data = await getServiceRequestById(req.params.requestId);
+    return res.status(200).json({ success: true, data });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Internal Server Error';
+    const statusCode = message.includes('not found') ? 404 : 500;
+    return res.status(statusCode).json({ success: false, message });
+  }
+}
 
 export async function getServiceRequests(req: Request, res: Response) {
   try {

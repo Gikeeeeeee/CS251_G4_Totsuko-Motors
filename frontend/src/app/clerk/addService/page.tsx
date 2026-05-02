@@ -1,21 +1,30 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import SidebarClerk from '@/components/SidebarClerk'
 import TopNavClerk from '@/components/TopNavClerk'
+import { getAvailableTechnicians, createService, type AvailableTechnician } from '@/services/addServiceApi'
 import styles from './page.module.css'
 
 export default function AddServicePage() {
+  const router = useRouter()
+
+  useEffect(() => {
+    const role = localStorage.getItem('role');
+    const validRoles = ['Admin', 'admin', 'clerk', 'Clerk'];
+    if (!role || !validRoles.includes(role)) {
+      alert('Access Denied: Only Admin and Clerk are allowed.');
+      router.push('/Login');
+    }
+  }, [router]);
+
   const [formData, setFormData] = useState({
     customerName: '',
     phoneNumber: '',
     backupPhone: '',
-    email: '',
     vehiclePlate: '',
-    brand: '',
-    model: '',
-    year: '',
-    vehicleType: '',
+    brandModel: '',
     mileage: '',
     color: '',
     problemDescription: '',
@@ -25,6 +34,24 @@ export default function AddServicePage() {
   const [errors, setErrors] = useState<{[key: string]: string}>({})
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [serviceId, setServiceId] = useState('')
+  const [availableTechnicians, setAvailableTechnicians] = useState<AvailableTechnician[]>([])
+  const [isLoadingTechnicians, setIsLoadingTechnicians] = useState(true)
+
+  useEffect(() => {
+    const fetchTechnicians = async () => {
+      try {
+        setIsLoadingTechnicians(true)
+        const technicians = await getAvailableTechnicians()
+        setAvailableTechnicians(technicians)
+      } catch (error) {
+        console.error('Error fetching technicians:', error)
+      } finally {
+        setIsLoadingTechnicians(false)
+      }
+    }
+
+    fetchTechnicians()
+  }, [])
 
   const validateForm = () => {
     const newErrors: {[key: string]: string} = {}
@@ -41,44 +68,9 @@ export default function AddServicePage() {
       newErrors.phoneNumber = 'เบอร์โทรศัพท์ไม่ถูกต้อง (ต้องเป็นตัวเลข 9-10 หลัก)'
     }
 
-    // Email validation
-    if (!formData.email.trim()) {
-      newErrors.email = 'กรุณากรอกอีเมล'
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'รูปแบบอีเมลไม่ถูกต้อง'
-    }
-
     // Vehicle Plate validation
     if (!formData.vehiclePlate.trim()) {
       newErrors.vehiclePlate = 'กรุณากรอกทะเบียนรถ'
-    }
-
-    // Brand validation
-    if (!formData.brand.trim()) {
-      newErrors.brand = 'กรุณากรอกยี่ห้อรถ'
-    }
-
-    // Model validation
-    if (!formData.model.trim()) {
-      newErrors.model = 'กรุณากรอกรุ่นรถ'
-    }
-
-    // Year validation
-    if (!formData.year.trim()) {
-      newErrors.year = 'กรุณากรอกปีรถ'
-    } else if (!/^[0-9]{4}$/.test(formData.year)) {
-      newErrors.year = 'ปีรถต้องเป็นตัวเลข 4 หลัก'
-    } else {
-      const yearNum = parseInt(formData.year)
-      const currentYear = new Date().getFullYear()
-      if (yearNum < 1900 || yearNum > currentYear + 1) {
-        newErrors.year = `ปีรถต้องอยู่ระหว่าง 1970-${currentYear}`
-      }
-    }
-
-    // Vehicle Type validation
-    if (!formData.vehicleType) {
-      newErrors.vehicleType = 'กรุณาเลือกประเภทรถ'
     }
 
     // Mileage validation
@@ -86,11 +78,6 @@ export default function AddServicePage() {
       newErrors.mileage = 'กรุณากรอกเลขไมล์'
     } else if (!/^[0-9,]+$/.test(formData.mileage)) {
       newErrors.mileage = 'เลขไมล์ต้องเป็นตัวเลขเท่านั้น'
-    }
-
-    // Color validation
-    if (!formData.color.trim()) {
-      newErrors.color = 'กรุณากรอกสีรถ'
     }
 
     // Problem Description validation
@@ -109,16 +96,25 @@ export default function AddServicePage() {
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault()
-    
-    if (validateForm()) {
-      // Generate service ID
-      const newServiceId = 'SV' + Math.random().toString(36).substring(2, 11).toUpperCase()
-      setServiceId(newServiceId)
-      
-      console.log('Form submitted:', formData)
+
+    if (!validateForm()) return
+
+    try {
+      const response = await createService({
+        name: formData.customerName,
+        plate_number: formData.vehiclePlate,
+        phone: formData.phoneNumber || undefined,
+        model: formData.brandModel || undefined,
+        color: formData.color || undefined,
+        odometer: formData.mileage ? parseInt(formData.mileage.replace(/,/g, ''), 10) : undefined,
+        problem_description: formData.problemDescription || undefined,
+      })
+      setServiceId(response.data.serviceRequest.requestId)
       setShowSuccessModal(true)
+    } catch (error) {
+      console.error('Error creating service:', error)
     }
   }
 
@@ -127,12 +123,8 @@ export default function AddServicePage() {
       customerName: '',
       phoneNumber: '',
       backupPhone: '',
-      email: '',
       vehiclePlate: '',
-      brand: '',
-      model: '',
-      year: '',
-      vehicleType: '',
+      brandModel: '',
       mileage: '',
       color: '',
       problemDescription: '',
@@ -165,208 +157,133 @@ export default function AddServicePage() {
             </div>
 
             <form className={styles.form} onSubmit={handleSubmit}>
-              {/* Customer Information Section */}
-              <div className={styles.section}>
-                <h3 className={styles.sectionTitle}>Customer Information</h3>
-                <div className={styles.formRow}>
-                  <div className={styles.formField}>
-                    <label className={styles.label}>
-                      Customer Name<span className={styles.required}>*</span>
-                    </label>
-                    <input
-                      type="text"
-                      className={`${styles.input} ${errors.customerName ? styles.inputError : ''}`}
-                      placeholder="e.g. นวพรรณ เอกดิษฐ์"
-                      value={formData.customerName}
-                      onChange={(e) => setFormData({...formData, customerName: e.target.value})}
-                    />
-                    {errors.customerName && <span className={styles.errorText}>{errors.customerName}</span>}
-                  </div>
-                  <div className={styles.formField}>
-                    <label className={styles.label}>
-                      Phone Number<span className={styles.required}>*</span>
-                    </label>
-                    <input
-                      type="tel"
-                      className={`${styles.input} ${errors.phoneNumber ? styles.inputError : ''}`}
-                      placeholder="099889199"
-                      value={formData.phoneNumber}
-                      onChange={(e) => setFormData({...formData, phoneNumber: e.target.value})}
-                    />
-                    {errors.phoneNumber && <span className={styles.errorText}>{errors.phoneNumber}</span>}
-                  </div>
-                  <div className={styles.formField}>
-                    <label className={styles.label}>Backup Phone</label>
-                    <input
-                      type="tel"
-                      className={styles.input}
-                      placeholder="099889199"
-                      value={formData.backupPhone}
-                      onChange={(e) => setFormData({...formData, backupPhone: e.target.value})}
-                    />
-                  </div>
-                </div>
-
-                <div className={styles.formRow}>
-                  <div className={styles.formField}>
-                    <label className={styles.label}>
-                      Email<span className={styles.required}>*</span>
-                    </label>
-                    <input
-                      type="email"
-                      className={`${styles.input} ${errors.email ? styles.inputError : ''}`}
-                      placeholder="example@email.com"
-                      value={formData.email}
-                      onChange={(e) => setFormData({...formData, email: e.target.value})}
-                    />
-                    {errors.email && <span className={styles.errorText}>{errors.email}</span>}
-                  </div>
-                </div>
-              </div>
-
-              {/* Vehicle Information Section */}
-              <div className={styles.section}>
-                <h3 className={styles.sectionTitle}>Vehicle Information</h3>
-                <div className={styles.formRow}>
-                  <div className={styles.formField}>
-                    <label className={styles.label}>
-                      Vehicle Plate<span className={styles.required}>*</span>
-                    </label>
-                    <input
-                      type="text"
-                      className={`${styles.input} ${errors.vehiclePlate ? styles.inputError : ''}`}
-                      placeholder="ลว 1234"
-                      value={formData.vehiclePlate}
-                      onChange={(e) => setFormData({...formData, vehiclePlate: e.target.value})}
-                    />
-                    {errors.vehiclePlate && <span className={styles.errorText}>{errors.vehiclePlate}</span>}
-                  </div>
-                  <div className={styles.formField}>
-                    <label className={styles.label}>
-                      Brand<span className={styles.required}>*</span>
-                    </label>
-                    <input
-                      type="text"
-                      className={`${styles.input} ${errors.brand ? styles.inputError : ''}`}
-                      placeholder="e.g. BMW"
-                      value={formData.brand}
-                      onChange={(e) => setFormData({...formData, brand: e.target.value})}
-                    />
-                    {errors.brand && <span className={styles.errorText}>{errors.brand}</span>}
-                  </div>
-                  <div className={styles.formField}>
-                    <label className={styles.label}>
-                      Model<span className={styles.required}>*</span>
-                    </label>
-                    <input
-                      type="text"
-                      className={`${styles.input} ${errors.model ? styles.inputError : ''}`}
-                      placeholder="e.g. M3 GTR"
-                      value={formData.model}
-                      onChange={(e) => setFormData({...formData, model: e.target.value})}
-                    />
-                    {errors.model && <span className={styles.errorText}>{errors.model}</span>}
-                  </div>
-                </div>
-
-                <div className={styles.formRow}>
-                  <div className={styles.formField}>
-                    <label className={styles.label}>
-                      Year<span className={styles.required}>*</span>
-                    </label>
-                    <input
-                      type="text"
-                      className={`${styles.input} ${errors.year ? styles.inputError : ''}`}
-                      placeholder="2022"
-                      value={formData.year}
-                      onChange={(e) => setFormData({...formData, year: e.target.value})}
-                    />
-                    {errors.year && <span className={styles.errorText}>{errors.year}</span>}
-                  </div>
-                  <div className={styles.formField}>
-                    <label className={styles.label}>
-                      Vehicle Type<span className={styles.required}>*</span>
-                    </label>
-                    <select
-                      className={`${styles.select} ${errors.vehicleType ? styles.inputError : ''}`}
-                      value={formData.vehicleType}
-                      onChange={(e) => setFormData({...formData, vehicleType: e.target.value})}
-                    >
-                      <option value="">Select vehicle type</option>
-                      <option value="sedan">Sedan</option>
-                      <option value="suv">SUV</option>
-                      <option value="truck">Truck</option>
-                      <option value="van">Van</option>
-                      <option value="coupe">Coupe</option>
-                      <option value="hatchback">Hatchback</option>
-                      <option value="motorcycle">Motorcycle</option>
-                    </select>
-                    {errors.vehicleType && <span className={styles.errorText}>{errors.vehicleType}</span>}
-                  </div>
-                  <div className={styles.formField}>
-                    <label className={styles.label}>
-                      Color<span className={styles.required}>*</span>
-                    </label>
-                    <input
-                      type="text"
-                      className={`${styles.input} ${errors.color ? styles.inputError : ''}`}
-                      placeholder="e.g. Red / Green / Blue"
-                      value={formData.color}
-                      onChange={(e) => setFormData({...formData, color: e.target.value})}
-                    />
-                    {errors.color && <span className={styles.errorText}>{errors.color}</span>}
-                  </div>
-                </div>
-
-                <div className={styles.formRow}>
-                  <div className={styles.formField}>
-                    <label className={styles.label}>
-                      Mileage (Odometer)<span className={styles.required}>*</span>
-                    </label>
-                    <input
-                      type="text"
-                      className={`${styles.input} ${errors.mileage ? styles.inputError : ''}`}
-                      placeholder="e.g. 25,000"
-                      value={formData.mileage}
-                      onChange={(e) => setFormData({...formData, mileage: e.target.value})}
-                    />
-                    {errors.mileage && <span className={styles.errorText}>{errors.mileage}</span>}
-                  </div>
-                </div>
-              </div>
-
-              {/* Service Details Section */}
-              <div className={styles.section}>
-                <h3 className={styles.sectionTitle}>Service Details</h3>
-                <div className={styles.formFieldFull}>
+              <div className={styles.formRow}>
+                <div className={styles.formField}>
                   <label className={styles.label}>
-                    Problem Description<span className={styles.required}>*</span>
+                    Customer Name<span className={styles.required}>*</span>
                   </label>
-                  <textarea
-                    className={`${styles.textarea} ${errors.problemDescription ? styles.inputError : ''}`}
-                    placeholder="ลูกค้าบอกมีเสียงแปลกๆตอนเหยียบเบรคบริเวณด้านหน้าตัวรถ"
-                    value={formData.problemDescription}
-                    onChange={(e) => setFormData({...formData, problemDescription: e.target.value})}
+                  <input
+                    type="text"
+                    className={`${styles.input} ${errors.customerName ? styles.inputError : ''}`}
+                    placeholder="e.g. นวพรรณ เอกดิษฐ์"
+                    value={formData.customerName}
+                    onChange={(e) => setFormData({...formData, customerName: e.target.value})}
                   />
-                  {errors.problemDescription && <span className={styles.errorText}>{errors.problemDescription}</span>}
+                  {errors.customerName && <span className={styles.errorText}>{errors.customerName}</span>}
                 </div>
-
-                <div className={styles.formFieldFull}>
+                <div className={styles.formFieldSmall}>
                   <label className={styles.label}>
-                    Select technician for inspection<span className={styles.required}>*</span>
+                    Phone Number<span className={styles.required}>*</span>
                   </label>
-                  <select
-                    className={`${styles.select} ${errors.technician ? styles.inputError : ''}`}
-                    value={formData.technician}
-                    onChange={(e) => setFormData({...formData, technician: e.target.value})}
-                  >
-                    <option value="">Select a technician</option>
-                    <option value="tech1">Technician 1</option>
-                    <option value="tech2">Technician 2</option>
-                    <option value="tech3">Technician 3</option>
-                  </select>
-                  {errors.technician && <span className={styles.errorText}>{errors.technician}</span>}
+                  <input
+                    type="tel"
+                    className={`${styles.input} ${errors.phoneNumber ? styles.inputError : ''}`}
+                    placeholder="099889199"
+                    value={formData.phoneNumber}
+                    onChange={(e) => setFormData({...formData, phoneNumber: e.target.value})}
+                  />
+                  {errors.phoneNumber && <span className={styles.errorText}>{errors.phoneNumber}</span>}
                 </div>
+                <div className={styles.formFieldSmall}>
+                  <label className={styles.label}>Backup Phone</label>
+                  <input
+                    type="tel"
+                    className={styles.input}
+                    placeholder="099889199"
+                    value={formData.backupPhone}
+                    onChange={(e) => setFormData({...formData, backupPhone: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div className={styles.formRow}>
+                <div className={styles.formField}>
+                  <label className={styles.label}>
+                    Vehicle Plate<span className={styles.required}>*</span>
+                  </label>
+                  <input
+                    type="text"
+                    className={`${styles.input} ${errors.vehiclePlate ? styles.inputError : ''}`}
+                    placeholder="ลว 1234"
+                    value={formData.vehiclePlate}
+                    onChange={(e) => setFormData({...formData, vehiclePlate: e.target.value})}
+                  />
+                  {errors.vehiclePlate && <span className={styles.errorText}>{errors.vehiclePlate}</span>}
+                </div>
+                <div className={styles.formField}>
+                  <label className={styles.label}>Brand / Model</label>
+                  <input
+                    type="text"
+                    className={styles.input}
+                    placeholder="e.g. BMW M3 GTR"
+                    value={formData.brandModel}
+                    onChange={(e) => setFormData({...formData, brandModel: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div className={styles.formRow}>
+                <div className={styles.formField}>
+                  <label className={styles.label}>
+                    Mileage (Odometer)<span className={styles.required}>*</span>
+                  </label>
+                  <input
+                    type="text"
+                    className={`${styles.input} ${errors.mileage ? styles.inputError : ''}`}
+                    placeholder="e.g. 25,000"
+                    value={formData.mileage}
+                    onChange={(e) => setFormData({...formData, mileage: e.target.value})}
+                  />
+                  {errors.mileage && <span className={styles.errorText}>{errors.mileage}</span>}
+                </div>
+                <div className={styles.formField}>
+                  <label className={styles.label}>Color</label>
+                  <input
+                    type="text"
+                    className={styles.input}
+                    placeholder="e.g. Red / Green / Blue"
+                    value={formData.color}
+                    onChange={(e) => setFormData({...formData, color: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div className={styles.formFieldFull}>
+                <label className={styles.label}>
+                  Problem Description<span className={styles.required}>*</span>
+                </label>
+                <textarea
+                  className={`${styles.textarea} ${errors.problemDescription ? styles.inputError : ''}`}
+                  placeholder="ลูกค้าบอกมีเสียงแปลกๆตอนเหยียบเบรคบริเวณด้านหน้าตัวรถ"
+                  value={formData.problemDescription}
+                  onChange={(e) => setFormData({...formData, problemDescription: e.target.value})}
+                />
+                {errors.problemDescription && <span className={styles.errorText}>{errors.problemDescription}</span>}
+              </div>
+
+              <div className={styles.formFieldFull}>
+                <label className={styles.label}>
+                  Select technician for inspection<span className={styles.required}>*</span>
+                </label>
+                <select
+                  className={`${styles.select} ${errors.technician ? styles.inputError : ''}`}
+                  value={formData.technician}
+                  onChange={(e) => setFormData({...formData, technician: e.target.value})}
+                  disabled={isLoadingTechnicians}
+                >
+                  <option value="">
+                    {isLoadingTechnicians ? 'กำลังโหลดช่าง...' : 'เลือกช่างผู้ตรวจสอบ'}
+                  </option>
+                  {availableTechnicians.map((tech) => (
+                    <option key={tech.employeeId} value={tech.employeeId}>
+                      {tech.name} - {tech.specialization}
+                    </option>
+                  ))}
+                </select>
+                {errors.technician && <span className={styles.errorText}>{errors.technician}</span>}
+                {!isLoadingTechnicians && availableTechnicians.length === 0 && (
+                  <span className={styles.errorText}>ไม่มีช่างที่ว่างในขณะนี้</span>
+                )}
               </div>
 
               <div className={styles.formActions}>
@@ -411,7 +328,7 @@ export default function AddServicePage() {
               <div className={styles.detailRow}>
                 <span className={styles.detailLabel}>VEHICLE</span>
                 <span className={styles.detailValue}>
-                  {formData.brand} {formData.model} ({formData.vehiclePlate})
+                  {formData.brandModel || 'N/A'} ({formData.vehiclePlate})
                 </span>
               </div>
               <div className={styles.detailRow}>

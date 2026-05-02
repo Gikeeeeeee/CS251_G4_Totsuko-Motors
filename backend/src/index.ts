@@ -32,9 +32,9 @@ app.use('/api/employees', employeeRoutes);
 
 // Health Check Route (เอาไว้ให้ FE ยิงมาเทสว่า BE ติดหรือยัง)
 app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'ok', 
-    message: 'Totsuko Motors API is running!' 
+  res.json({
+    status: 'ok',
+    message: 'Totsuko Motors API is running!'
   });
 });
 

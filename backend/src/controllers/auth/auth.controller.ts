@@ -23,7 +23,7 @@ export const login = async (req: AuthRequest, res: Response, next: NextFunction)
     res.cookie('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      maxAge: 15 * 60 * 1000, 
+      maxAge: 15 * 60 * 1000,
     });
 
     res.cookie('refreshToken', refreshToken, {
@@ -55,7 +55,6 @@ export const logout = (req: AuthRequest, res: Response, next: NextFunction) => {
 
 export const verify = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-   
     const user = await db.select({
       userId: userAccount.userId,
       employeeId: employee.employeeId,
@@ -66,8 +65,8 @@ export const verify = async (req: AuthRequest, res: Response, next: NextFunction
       phone: employee.phone,
       hireDate: employee.hireDate,
     }).from(userAccount)
-    .leftJoin(employee, eq(userAccount.userId, employee.userId))
-    .where(eq(userAccount.userId, req.userId!)).limit(1);
+      .leftJoin(employee, eq(userAccount.userId, employee.userId))
+      .where(eq(userAccount.userId, req.userId!)).limit(1);
 
     if (user.length === 0) {
       const error: any = new Error('ไม่พบผู้ใช้งาน');
@@ -141,11 +140,11 @@ export const refresh = async (req: AuthRequest, res: Response, next: NextFunctio
     }
 
     const result = await refreshAccessToken(refreshToken);
-    
+
     res.cookie('token', result.token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      maxAge: 15 * 60 * 1000, 
+      maxAge: 15 * 60 * 1000,
     });
 
     res.json({

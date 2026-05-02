@@ -1,11 +1,25 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { authService } from '@/services/auth.service';
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    try {
+      await authService.logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+    localStorage.removeItem('user');
+    localStorage.removeItem('role');
+    localStorage.removeItem('employee_id');
+    router.push('/Login');
+  };
 
   const menuItems = [
     {
@@ -82,10 +96,7 @@ export default function Sidebar() {
       <div className="p-4 border-t border-gray-200">
         <button
           className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors w-full"
-          onClick={() => {
-            // เพิ่ม logout logic ที่นี่
-            console.log('Logout clicked');
-          }}
+          onClick={handleLogout}
         >
             
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

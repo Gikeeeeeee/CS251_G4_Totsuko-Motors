@@ -1,13 +1,18 @@
 import { Router } from 'express';
-import { getServiceRequests } from '../../controllers/service/dashboard-detail.controller';
+import { getServiceRequests, getServiceRequestByIdController } from '../../controllers/service/dashboard-detail.controller';
 import { createUsePart } from '../../controllers/service/part-usage.controller';
 import {
   createServiceJob,
   getServiceJob,
   updateServiceJob,
+  getServiceJobsByRequestId,
+  assignTechnicianToJob,
+  replaceServiceJobPartsHandler,
+  replaceServiceJobTechniciansHandler,
+  removeTechnicianFromJob,
+  deleteServiceJobHandler,
 } from '../../controllers/service/service-job.controller';
-import { createServiceController } from '../../controllers/service/service-request.controller';
-import { getTechnicianRequests } from '../../controllers/service/technician-requests.controller';
+import { createServiceController, updateServiceRequestStatusController } from '../../controllers/service/service-request.controller';
 import {
   getAvailableParts,
   getPurchaseOrders,
@@ -21,12 +26,19 @@ import { authMiddleware } from '../../middlewares/auth.middleware';
 const router = Router();
 
 router.get('/service-request', getServiceRequests);
+router.get('/service-request/:requestId', getServiceRequestByIdController);
 router.post('/service-request/create', createServiceController);
+router.patch('/service-request/:requestId/status', updateServiceRequestStatusController);
+router.get('/:requestId/service-jobs', getServiceJobsByRequestId);
 router.post('/:serviceId/service-job', createServiceJob);
 router.get('/service-job/:id', getServiceJob);
 router.put('/service-job/:id', updateServiceJob);
+router.put('/service-job/:id/parts', replaceServiceJobPartsHandler);
+router.put('/service-job/:id/assign', replaceServiceJobTechniciansHandler);
 router.post('/service-job/:id/parts', createUsePart);
-router.get('/technician/requests', getTechnicianRequests);
+router.post('/service-job/:id/assign', assignTechnicianToJob);
+router.delete('/service-job/:id', deleteServiceJobHandler);
+router.delete('/service-job/:id/assign/:technicianId', removeTechnicianFromJob);
 
 router.get('/suppliers', getSuppliers);// เส้นดึงข้อมูลรายชื่อ supplier
 router.get('/parts', getAvailableParts);// เส้นดึงข้อมูลอะไหล่ที่มีอยู่ในระบบ

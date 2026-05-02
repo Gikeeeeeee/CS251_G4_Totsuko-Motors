@@ -8,6 +8,12 @@ export type CreateInvoiceRecord = {
   createdDate?: string;
 };
 
+export type CreateInvoiceDetailRecord = {
+  invoiceId: string;
+  details: string;
+  amount: number;
+};
+
 export async function findInvoiceByRequestId(requestId: string) {
   const result = await pool.query(
     `
@@ -25,6 +31,38 @@ export async function findInvoiceByRequestId(requestId: string) {
   );
 
   return result.rows[0] ?? null;
+}
+
+export async function findInvoiceDetailsByInvoiceId(invoiceId: string) {
+  const result = await pool.query(
+    `
+      SELECT
+        invoice_id,
+        details,
+        amount
+      FROM "InvoiceDetail"
+      WHERE invoice_id = $1
+      ORDER BY details
+    `,
+    [invoiceId],
+  );
+
+  return result.rows;
+  const invoice = result.rows[0] ?? null;
+
+  if (invoice) {
+    const detailsResult = await pool.query(
+      `
+        SELECT details, amount
+        FROM "InvoiceDetail"
+        WHERE invoice_id = $1
+      `,
+      [invoice.invoice_id]
+    );
+    invoice.invoiceDetails = detailsResult.rows;
+  }
+
+  return invoice;
 }
 
 export async function findServiceRequestForInvoice(requestId: string) {
@@ -64,4 +102,101 @@ export async function createInvoiceRecord(data: CreateInvoiceRecord) {
   );
 
   return result.rows[0];
+}
+
+export async function createInvoiceWithDetails(invoiceData: CreateInvoiceRecord, details: CreateInvoiceDetailRecord[]) {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const createdInvoice = await client.query(
+      `
+        INSERT INTO "Invoice" (
+          invoice_id,
+          created_date,
+          payment_status,
+          total_amount,
+          request_id
+        )
+        VALUES ($1, $2, $3, $4, $5)
+        RETURNING *
+      `,
+      [
+        invoiceData.invoiceId,
+        invoiceData.createdDate ?? new Date().toISOString().split('T')[0],
+        invoiceData.paymentStatus ?? 'Unpaid',
+        invoiceData.totalAmount ?? null,
+        invoiceData.requestId,
+      ],
+    );
+
+    for (const detail of details) {
+      await client.query(
+        `
+          INSERT INTO "InvoiceDetail" (
+            invoice_id,
+            details,
+            amount
+          ) VALUES ($1, $2, $3)
+        `,
+        [detail.invoiceId, detail.details, detail.amount],
+      );
+    }
+
+    await client.query('COMMIT');
+    return createdInvoice.rows[0];
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+export async function findAllInvoices() {
+  const result = await pool.query(`
+    SELECT
+      i.invoice_id,
+      i.created_date,
+      i.payment_status,
+      i.total_amount,
+      i.request_id,
+      c.name AS customer_name,
+      sr.problem_description,
+      v.brand,
+      v.model,
+      v.year,
+      v.plate_number,
+      v.color,
+      (
+        SELECT COALESCE(json_agg(
+          json_build_object(
+            'details', id.details,
+            'amount', id.amount
+          )
+        ), '[]'::json)
+        FROM "InvoiceDetail" id
+        WHERE id.invoice_id = i.invoice_id
+      ) AS invoice_details
+    FROM "Invoice" i
+    LEFT JOIN "ServiceRequest" sr ON i.request_id = sr.request_id
+    LEFT JOIN "Customer" c ON sr.customer_id = c.customer_id
+    LEFT JOIN "Vehicle" v ON sr.vehicle_id = v.vehicle_id
+    ORDER BY i.created_date DESC, i.invoice_id DESC
+  `);
+  
+  return result.rows;
+}
+
+export async function updateInvoicePaymentStatus(invoiceId: string, status: string) {
+  const result = await pool.query(
+    `
+      UPDATE "Invoice"
+      SET payment_status = $1
+      WHERE invoice_id = $2
+      RETURNING *
+    `,
+    [status, invoiceId]
+  );
+  return result.rows[0] ?? null;
 }

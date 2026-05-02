@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import { 
-  getPartsForOrdering, 
+import {
+  getPartsForOrdering,
   createNewPurchaseOrder,
   getPurchaseOrdersService,
   getPurchaseOrderPartsService,
@@ -34,8 +34,10 @@ export const getAvailableParts = async (req: Request, res: Response, next: NextF
 export const postPurchaseOrder = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     // สมมติว่า staffId ดึงมาจาก req.userId หรือ req.body ชั่วคราว (ตามที่คุณใช้งานอยู่)
-    const staffId = req.userId || null; 
     const payload = req.body;
+
+    const staffId = payload.staffId || payload.purchasingStaffId || req.userId || null;
+
     const result = await createNewPurchaseOrder(staffId as any, payload);
     res.json(result);
   } catch (error) {

@@ -1,24 +1,59 @@
 'use client';
 
-import { useState, FormEvent } from "react";
+import { useState, useEffect, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { authService } from "@/services/auth.service"; 
+import { setUser } from "@/auth/auth";
+// 1. Import ฟังก์ชันจากไฟล์แยกที่เราสร้างไว้
+import { getRedirectPathByRole } from "@/utils/roleRedirect";
 
 export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const router = useRouter();
 
-  const handleLogin = (e: FormEvent<HTMLFormElement>) => {
+  // ลบฟังก์ชัน redirectByRole (switch/case) ตรงนี้ออกไปแล้วครับ เพราะเราย้ายไปไว้ที่ utils แทน
+
+  useEffect(() => {
+    authService.verify()
+      .then((data) => {
+        if (data.success) {
+          // กันเหนียว กรณี verify ผ่าน ให้เซ็ตลง Local Storage ด้วย
+          localStorage.setItem('user', JSON.stringify(data.user));
+          localStorage.setItem('role', data.user.role);
+          localStorage.setItem('employee_id', data.user.employeeId);
+
+          setUser(data.user);
+          // 2. เรียกใช้ฟังก์ชันจาก utils แล้วสั่ง router.push เลย
+          router.push(getRedirectPathByRole(data.user.role));
+        }
+      })
+      .catch(() => {
+        // ปล่อยให้อยู่หน้า Login ต่อไป
+      });
+  }, [router]);
+
+  const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    // mock logic
-    if (username === "admin" && password === "1234") {
-      alert("Login สำเร็จ (Admin)");
-      // redirect ไปหน้า technician request list
-      router.push("/technician/request-list");
-    } else {
-      alert("Username หรือ Password ไม่ถูกต้อง");
+    try {
+      const data = await authService.login(username, password);
+
+      if (data.success) {
+        // 🛠️ จุดสำคัญ: บันทึกข้อมูลลง Local Storage เพื่อให้ Auth Guard และหน้าอื่นๆ เรียกใช้ได้
+        localStorage.setItem('user', JSON.stringify(data.user));
+        localStorage.setItem('role', data.user.role);
+        localStorage.setItem('employee_id', data.user.employeeId);
+
+        setUser(data.user);
+        
+        // 3. เรียกใช้ฟังก์ชันจาก utils เช่นเดียวกัน
+        router.push(getRedirectPathByRole(data.user.role));
+      }
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || "Username หรือ Password ไม่ถูกต้อง";
+      alert(errorMessage);
     }
   };
 

@@ -1,4 +1,14 @@
-import { findServiceRequests } from '../../repo/service/dashboard-detail.repo';
+import { findServiceRequests, findServiceRequestWithDetails } from '../../repo/service/dashboard-detail.repo';
+
+export async function getServiceRequestById(requestId: string) {
+  const data = await findServiceRequestWithDetails(requestId);
+
+  if (!data) {
+    throw new Error(`Service request "${requestId}" not found`);
+  }
+
+  return data;
+}
 
 export async function getServiceList(page: number, limit: number, status?: string) {
   const { data, totalItems } = await findServiceRequests(page, limit, status);

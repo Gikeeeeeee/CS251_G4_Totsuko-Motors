@@ -1,10 +1,26 @@
 'use client'
 
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import styles from './SidebarPS.module.css'
+import { authService } from '@/services/auth.service'
 
 export default function SidebarPS() {
   const pathname = usePathname()
+  const router = useRouter()
+
+  const handleLogout = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    try {
+      await authService.logout()
+    } catch (error) {
+      console.error('Logout error:', error)
+    }
+    localStorage.removeItem('user')
+    localStorage.removeItem('role')
+    localStorage.removeItem('employee_id')
+    router.push('/Login')
+  }
+
   return (
     <nav className={styles.sidebar}>
       <div className={styles.logoSection}>
@@ -13,7 +29,7 @@ export default function SidebarPS() {
       
 
       <div className={styles.navLinks}>
-        <a href="/" className={`${styles.link} ${pathname === '/' ? styles.active : ''}`}>
+        <a href="/PurchasingStaff/purchasing-part" className={`${styles.link} ${pathname === '/PurchasingStaff/purchasing-part' ? styles.active : ''}`}>
           <span className={styles.icon}>
             <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M10 6V0H18V6H10ZM0 10V0H8V10H0ZM10 18V8H18V18H10ZM0 18V12H8V18H0ZM2 8H6V2H2V8ZM12 16H16V10H12V16ZM12 4H16V2H12V4ZM2 16H6V14H2V16Z" fill="currentColor"/>
@@ -41,9 +57,9 @@ export default function SidebarPS() {
       </div>
 
       <div className={styles.logoutSection}>
-        <a href="#" className={styles.logoutLink}>
+        <a href="#" className={styles.logoutLink} onClick={handleLogout}>
           <span className={styles.icon}><svg width="21" height="21" viewBox="0 0 21 21" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M7.25 19.25H3.25C2.71957 19.25 2.21086 19.0393 1.83579 18.6642C1.46071 18.2891 1.25 17.7804 1.25 17.25V3.25C1.25 2.71957 1.46071 2.21086 1.83579 1.83579C2.21086 1.46071 2.71957 1.25 3.25 1.25H7.25M14.25 15.25L19.25 10.25M19.25 10.25L14.25 5.25M19.25 10.25H7.25" stroke="#64748B" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M7.25 19.25H3.25C2.71957 19.25 2.21086 19.0393 1.83579 18.6642C1.46071 18.2891 1.25 17.7804 1.25 17.25V3.25C1.25 2.71957 1.46071 2.21086 1.83579 1.83579C2.21086 1.46071 2.71957 1.25 3.25 1.25H7.25M14.25 15.25L19.25 10.25M19.25 10.25L14.25 5.25M19.25 10.25H7.25" stroke="#64748B" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </span>
           Logout
