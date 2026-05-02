@@ -74,8 +74,14 @@ export default function TechnicianPage() {
     const currentItems = filteredRequests.slice(indexOfFirstItem, indexOfLastItem);
     const totalPages = Math.ceil(filteredRequests.length / itemsPerPage);
 
-    // 🚀 เมื่อกด Receive -> วิ่งไปหน้า Operation พร้อม Request ID
-    const handleReceive = (requestId: string) => {
+    // 🚀 เมื่อกด Receive -> เปลี่ยนสถานะเป็น In Progress แล้วไปหน้า Operation
+    const handleReceive = async (requestId: string) => {
+        try {
+            await apiClient.patch(`/service/service-request/${requestId}/status`, { status: 'In Progress' });
+            setRequests(prev => prev.map(r => r.id === requestId ? { ...r, status: 'In Progress' } : r));
+        } catch (error) {
+            console.error('Failed to update status:', error);
+        }
         router.push(`/technician/operation?requestId=${requestId}`);
     };
 

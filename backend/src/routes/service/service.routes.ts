@@ -12,7 +12,7 @@ import {
   removeTechnicianFromJob,
   deleteServiceJobHandler,
 } from '../../controllers/service/service-job.controller';
-import { createServiceController } from '../../controllers/service/service-request.controller';
+import { createServiceController, updateServiceRequestStatusController } from '../../controllers/service/service-request.controller';
 import {
   getAvailableParts,
   getPurchaseOrders,
@@ -29,6 +29,7 @@ const router = Router();
 router.get('/service-request', getServiceRequests);
 router.get('/service-request/:requestId', getServiceRequestByIdController);
 router.post('/service-request/create', createServiceController);
+router.patch('/service-request/:requestId/status', updateServiceRequestStatusController);
 router.get('/:requestId/service-jobs', getServiceJobsByRequestId);
 router.post('/:serviceId/service-job', createServiceJob);
 router.get('/service-job/:id', getServiceJob);

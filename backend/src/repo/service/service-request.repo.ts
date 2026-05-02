@@ -73,6 +73,15 @@ export async function createServiceRecord(data: CreateServiceRecord) {
 
 
 
+export async function updateServiceRequestStatus(requestId: string, status: string) {
+  const [updated] = await db
+    .update(serviceRequest)
+    .set({ requestStatus: status })
+    .where(eq(serviceRequest.requestId, requestId))
+    .returning({ requestId: serviceRequest.requestId, requestStatus: serviceRequest.requestStatus });
+  return updated;
+}
+
 // ฟังก์ชันดึงข้อมูลสำหรับหน้า Technician
 export async function findTechnicianRequests() {
   const data = await db

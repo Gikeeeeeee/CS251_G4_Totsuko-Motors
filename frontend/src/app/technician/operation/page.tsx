@@ -316,6 +316,7 @@ function InvoiceCard({ jobs, otherItems, requestId }: { data: ServiceRequestData
         total_amount: grand,
         details: lineItems,
       });
+      await apiClient.patch(`/service/service-request/${requestId}/status`, { status: 'Complete' });
       setSentToClerk(true);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to send invoice';
