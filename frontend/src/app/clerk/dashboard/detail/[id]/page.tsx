@@ -113,34 +113,13 @@ export default async function ServiceDetailDynamic({ params }: { params: Promise
         jobsArr.push(processJobData(jobData));
       }
 
-      // Calculate estimated repair time from "In Progress" jobs
-      const inProgressJobs = jobsArr.filter(j => 
-        (j.status === "In Progress" || j.status === "In_progress") && 
-        j.startDateRaw && j.endDateRaw
-      );
-
-      if (inProgressJobs.length > 0) {
-        let earliestStart = new Date(inProgressJobs[0].startDateRaw).getTime();
-        let latestEnd = new Date(inProgressJobs[0].endDateRaw).getTime();
-        
-        inProgressJobs.forEach(j => {
-          const sTime = new Date(j.startDateRaw).getTime();
-          const eTime = new Date(j.endDateRaw).getTime();
-          if (sTime < earliestStart) earliestStart = sTime;
-          if (eTime > latestEnd) latestEnd = eTime;
-        });
-
-        if (latestEnd > earliestStart) {
-          const diffMs = latestEnd - earliestStart;
-          const diffMins = Math.floor(diffMs / (1000 * 60));
-          const days = Math.floor(diffMins / (24 * 60));
-          const hours = Math.floor((diffMins % (24 * 60)) / 60);
-          const mins = diffMins % 60;
-          
-          apptObj.estimatedDays = days.toString();
-          apptObj.estimatedHours = hours.toString();
-          apptObj.estimatedMins = mins.toString();
-        }
+      // Use latest end_time from all jobs as check-in date
+      const jobsWithEnd = jobsArr.filter(j => j.endDateRaw);
+      if (jobsWithEnd.length > 0) {
+        const latestJob = jobsWithEnd.reduce((latest, j) =>
+          new Date(j.endDateRaw).getTime() > new Date(latest.endDateRaw).getTime() ? j : latest
+        );
+        apptObj.checkIn = new Date(latestJob.endDateRaw).toLocaleDateString('th-TH');
       }
 
       apiData = {
@@ -217,14 +196,7 @@ export default async function ServiceDetailDynamic({ params }: { params: Promise
                 <div className={styles.infoLabel}>PLATE NAME</div>
                 <div className={styles.infoValue}>{data.plate}</div>
               </div>
-              <div>
-                <div className={styles.infoLabel}>VEHICLE NAME</div>
-                <div className={styles.infoValue}>{data.vehicleName}</div>
-              </div>
-              <div>
-                <div className={styles.infoLabel}>YEAR</div>
-                <div className={styles.infoValue}>{data.year}</div>
-              </div>
+
             </div>
 
             <div className={styles.appointmentSection}>
@@ -236,15 +208,7 @@ export default async function ServiceDetailDynamic({ params }: { params: Promise
                   <div className={styles.appointmentLabelRight}>นัดซ่อม :</div>
                   <div className={styles.appointmentValue}>{data.appointment.repair}</div>
                 </div>
-                <div className={styles.estimationRow}>
-                  <div className={styles.estimationLabel}>เวลาคาดการณ์ดำเนินการซ่อม</div>
-                  <div className={styles.estimationLabelMargin}>จำนวนวัน :</div>
-                  <div className={styles.estimationValue}>{data.appointment.estimatedDays}</div>
-                  <div className={styles.estimationLabel}>ชั่วโมง :</div>
-                  <div className={styles.estimationValueHighlight}>{data.appointment.estimatedHours}</div>
-                  <div className={styles.estimationLabel}>นาที :</div>
-                  <div className={styles.estimationValueHighlight}>{data.appointment.estimatedMins}</div>
-                </div>
+
               </div>
             </div>
           </div>
