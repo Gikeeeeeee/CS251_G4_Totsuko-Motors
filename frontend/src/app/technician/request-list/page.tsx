@@ -1,5 +1,6 @@
 'use client';
 
+import apiClient from '@/services/apiClient';
 import { useState, useEffect } from 'react';
 import apiClient from '@/services/apiClient';
 import { useRouter } from 'next/navigation';
@@ -25,6 +26,8 @@ export default function TechnicianPage() {
     
     // Pagination
     const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalItems, setTotalItems] = useState(0);
     const itemsPerPage = 10;
 
     useEffect(() => {
@@ -65,9 +68,8 @@ export default function TechnicianPage() {
                 setLoading(false);
             }
         };
-
         loadData();
-    }, []);
+    }, [currentPage]);
 
     // Filter ข้อมูล
     const filteredRequests = requests.filter(req => 

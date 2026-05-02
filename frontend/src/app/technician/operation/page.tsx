@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/static-components */
 'use client';
 import React, { useState, useRef, useEffect, Suspense } from 'react';
 import Image from 'next/image';

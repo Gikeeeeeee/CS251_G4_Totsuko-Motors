@@ -19,9 +19,8 @@ import {
   getPurchaseOrderParts,
   updateOrderStatus,
   postPurchaseOrder,
-  getSuppliers
+  getSuppliers,
 } from '../../controllers/service/purchase-order.controller';
-
 import { authMiddleware } from '../../middlewares/auth.middleware';
 
 const router = Router();
