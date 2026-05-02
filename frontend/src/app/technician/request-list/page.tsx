@@ -2,7 +2,6 @@
 
 import apiClient from '@/services/apiClient';
 import { useState, useEffect } from 'react';
-import apiClient from '@/services/apiClient';
 import { useRouter } from 'next/navigation';
 
 // Interface สำหรับกำหนดโครงสร้างข้อมูลที่มาจาก API
@@ -26,8 +25,6 @@ export default function TechnicianPage() {
     
     // Pagination
     const [currentPage, setCurrentPage] = useState(1);
-    const [totalPages, setTotalPages] = useState(1);
-    const [totalItems, setTotalItems] = useState(0);
     const itemsPerPage = 10;
 
     useEffect(() => {
