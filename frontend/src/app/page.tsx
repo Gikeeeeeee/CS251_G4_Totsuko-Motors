@@ -6,6 +6,7 @@ import { authService } from '@/services/auth.service';
 import { setUser, logoutClient } from '@/auth/auth';
 import Loading from '@/components/shared/Loading';
 // 1. Import ฟังก์ชันจากไฟล์ Utility ที่เราเพิ่งสร้าง
+// 2. ใช้ฟังก์ชันใน useEffect เพื่อกำหนดเส้นทางการเปลี่ยนหน้า
 import { getRedirectPathByRole } from '@/utils/roleRedirect'; 
 
 export default function Home() {
