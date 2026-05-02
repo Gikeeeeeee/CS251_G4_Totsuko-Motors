@@ -1,8 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Sidebar from '@/components/Sidebar';
-import TopNav from '@/components/TopNav';
 import apiClient from '@/services/apiClient';
 import { useRouter } from 'next/navigation';
 
@@ -100,18 +98,8 @@ export default function TechnicianPage() {
 
     if (loading) {
         return (
-            <div className="flex min-h-screen">
-                <Sidebar />
-                <div className="flex-1 bg-gray-50">
-                    <TopNav />
-                    <main className="p-6">
-                        <div className="flex items-center justify-center h-64">
-                            <div className="text-center">
-                                <div className="text-lg text-gray-600">Loading...</div>
-                            </div>
-                        </div>
-                    </main>
-                </div>
+            <div className="flex items-center justify-center h-64">
+                <div className="text-lg text-gray-600">Loading...</div>
             </div>
         );
     }
@@ -126,11 +114,7 @@ export default function TechnicianPage() {
     };
 
     return (
-        <div className="flex">
-            <Sidebar />
-            <div className="flex-1 bg-[F3FAFF]">
-                <TopNav />
-                <main className="flex flex-col p-[32px] gap-[32px]">
+        <div className="flex flex-col gap-[32px]">
 
                     <p className='font-bold text-[32px] text-[#002446]'>Request & Checking</p>
 
@@ -263,8 +247,6 @@ export default function TechnicianPage() {
                         </div>
                     </div>
 
-                </main>
-            </div>
         </div>
     );
 }

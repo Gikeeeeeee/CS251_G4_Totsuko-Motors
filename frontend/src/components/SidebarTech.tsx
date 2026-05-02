@@ -7,7 +7,7 @@ import { authService } from '@/services/auth.service'
 const navItems = [
   {
     label: 'Request & Checking',
-    href: '/request',
+    href: '/technician/request-list',
     icon: (
       <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
         <rect x="1" y="1" width="6" height="6" rx="1" stroke="currentColor" strokeWidth="1.5"/>
@@ -19,7 +19,7 @@ const navItems = [
   },
   {
     label: 'Operating',
-    href: '/operation',
+    href: '/technician/operation',
     icon: (
       <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
         <path d="M2 11.5L3.5 7.5H14.5L16 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
