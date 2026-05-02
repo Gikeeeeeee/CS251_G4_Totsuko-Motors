@@ -223,11 +223,16 @@
   border: none;
   cursor: pointer;
   padding: 8px 16px;
-  transition: color 0.2s;
+  transition: color 0.2s, opacity 0.2s;
 }
 
-.clearBtn:hover {
+.clearBtn:hover:not(:disabled) {
   color: #002446;
+}
+
+.clearBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .submitBtn {
@@ -245,17 +250,22 @@
   line-height: 24px;
   color: #FFFFFF;
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
   min-width: 200px;
 }
 
-.submitBtn:hover {
+.submitBtn:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: 0px 15px 20px -3px rgba(0, 0, 0, 0.15), 0px 6px 8px -4px rgba(0, 0, 0, 0.15);
 }
 
-.submitBtn:active {
+.submitBtn:active:not(:disabled) {
   transform: translateY(0);
+}
+
+.submitBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 @media (max-width: 1024px) {
